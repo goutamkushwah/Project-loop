@@ -5,17 +5,7 @@ PROJECT DETAILS
 Project Name:
 LOOP - AI Customer Feedback Intelligence Platform
 
-Internship:
-Zidio Development
 
-Developer:
-Mohan Sahu
-Gaurav Athode
-Gautam Kushwah
-Sneha 
-
-Duration:
-4 Weeks
 
 Technology Used:
 • Next.js 14
@@ -54,18 +44,3 @@ Installation Steps:
 Default URL:
 http://localhost:3000
 
-GitHub Repository:
-https://github.com/yourusername/project
-
-Live Demo:
-https://your-project.vercel.app
-
-Developer:
-Mohan Sahu
-Gaurav Athode
-Gautam Kushwah
-Sneha 
-
-
-Email:
-your-email@example.com
