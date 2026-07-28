@@ -1,0 +1,46 @@
+=========================================
+PROJECT DETAILS
+=========================================
+
+Project Name:
+LOOP - AI Customer Feedback Intelligence Platform
+
+
+
+Technology Used:
+• Next.js 14
+• TypeScript
+• Tailwind CSS
+• PostgreSQL
+• Prisma ORM
+• NextAuth
+• Anthropic Claude AI
+• Recharts
+• Zod
+
+Project Description:
+LOOP is an AI-powered web application that collects customer feedback from multiple sources. It analyzes feedback using AI, performs sentiment analysis, groups similar feedback into themes, displays analytics dashboards, and allows users to ask questions using AI.
+
+Main Features:
+✓ Authentication
+✓ Role-Based Access Control
+✓ Feedback CRUD
+✓ CSV Upload
+✓ Search & Filter
+✓ Analytics Dashboard
+✓ AI Sentiment Analysis
+✓ Theme Clustering
+✓ Ask LOOP AI
+✓ Voice of Customer Report
+✓ Responsive Design
+
+Installation Steps:
+1. npm install
+2. Configure .env file
+3. npx prisma migrate dev
+4. npm run seed
+5. npm run dev
+
+Default URL:
+http://localhost:3000
+
