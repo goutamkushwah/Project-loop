@@ -19,12 +19,18 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
+enum Role {
+  ADMIN
+  VIEWER
+  ANALYST
+}
 model User {
   id       String @id @default(cuid())
   name     String
   email    String @unique
   password String
+
+  role        Role        @default(VIEWER)
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
