@@ -1,5 +1,10 @@
 # Dependencies
 /node_modules
+/.pnp
+.pnp.*
+
+# Tests and coverage
+/coverage
 
 # Next.js
 /.next
@@ -9,40 +14,22 @@
 /build
 /dist
 
-# Testing
-/coverage
-
-# Local operating-system files
+# Local tooling
 .DS_Store
-Thumbs.db
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+*.pem
 *.log
 
-# Environment variables and secrets
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files
+.env*
+!.env.example
 
 # Vercel
 .vercel
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts.bak
+next-env.d.ts
 
-# IDE files
-.idea
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# Prisma local database files
+# Prisma local databases
 *.db
 *.db-journal

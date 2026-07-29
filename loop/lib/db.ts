@@ -1,3 +1,5 @@
+import "server-only";
+
 import { PrismaClient } from "@prisma/client";
 
 import { env } from "@/lib/env";
@@ -9,8 +11,7 @@ const globalForPrisma = globalThis as unknown as {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasourceUrl: env.DATABASE_URL,
-    log: env.NODE_ENV === "development" ? ["query", "info", "warn", "error"] : ["warn", "error"]
+    log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
 if (env.NODE_ENV !== "production") {
