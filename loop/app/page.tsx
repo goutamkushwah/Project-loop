@@ -23,31 +23,82 @@ export default async function HomePage() {
       />
 
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col">
-        <header className="flex items-center justify-between gap-5 border-b border-slate-200 pb-6">
-          <a
-            href="#main-content"
-            className="sr-only rounded-md bg-white px-3 py-2 text-sm font-semibold text-loop-800 focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
-          >
-            Skip to content
-          </a>
+        <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
+  <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+    {/* Logo */}
+    <Link
+      href="/"
+      className="flex items-center gap-3"
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-loop-900 text-lg font-black text-white">
+        L
+      </div>
+
+      <div>
+        <h1 className="text-lg font-extrabold tracking-widest text-loop-900">
+          LOOP
+        </h1>
+        <p className="text-xs text-slate-500">
+          AI Feedback Intelligence
+        </p>
+      </div>
+    </Link>
+
+    {/* Navigation */}
+    <nav className="hidden items-center gap-8 md:flex">
+      <Link
+        href="/"
+        className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
+      >
+        Home
+      </Link>
+
+      <Link
+        href="/dashboard"
+        className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
+      >
+        Dashboard
+      </Link>
+
+      <Link
+        href="/profile"
+        className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
+      >
+        Profile
+      </Link>
+
+      
+
+      <a
+        href="#about"
+        className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
+      >
+        About
+      </a>
+    </nav>
+
+    {/* Right Side */}
+    <div className="flex items-center gap-3">
+      {session?.user ? (
+        <>
+          <span className="hidden text-sm font-medium text-slate-600 lg:block">
+            {session.user.name}
+          </span>
 
           <Link
-            href="/"
-            className="flex items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-            aria-label="LOOP home"
+            href="/dashboard"
+            className="rounded-xl bg-loop-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-loop-800"
           >
-            <span
-              aria-hidden="true"
-              className="grid size-10 place-items-center rounded-xl bg-loop-900 text-lg font-black text-white shadow-panel"
-            >
-              L
-            </span>
-            <span>
-              <span className="block text-base font-extrabold tracking-[0.24em] text-loop-900">
-                LOOP
-              </span>
-              <span className="block text-xs text-slate-500">Customer-feedback intelligence</span>
-            </span>
+            Dashboard
+          </Link>
+        </>
+      ) : (
+        <>
+          <Link
+            href="/login"
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Sign In
           </Link>
 
           <nav className="flex items-center gap-2" aria-label="Account navigation">
