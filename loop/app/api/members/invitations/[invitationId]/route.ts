@@ -12,12 +12,16 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type InvitationRouteContext = {
-  params: {
+  params: Promise<{
     invitationId: string;
-  };
+  }>;
 };
 
-export async function DELETE(request: Request, context: InvitationRouteContext) {
+export async function DELETE(
+  request: Request,
+  context: InvitationRouteContext,
+) {
+  const { invitationId } = await context.params;
   if (!isTrustedMutationRequest(request)) {
     return apiError(
       "CROSS_SITE_REQUEST_BLOCKED",
@@ -32,7 +36,7 @@ export async function DELETE(request: Request, context: InvitationRouteContext) 
     return authorization.response;
   }
 
-  const parsedInvitationId = invitationIdSchema.safeParse(context.params.invitationId);
+ const parsedInvitationId = invitationIdSchema.safeParse(invitationId);
 
   if (!parsedInvitationId.success) {
     return apiError("VALIDATION_ERROR", "The invitation identifier is invalid.", 422);

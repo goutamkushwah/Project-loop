@@ -14,12 +14,16 @@ export const runtime = "nodejs";
 const MAX_REQUEST_BYTES = 4 * 1024;
 
 type MemberRouteContext = {
-  params: {
+  params: Promise<{
     memberId: string;
-  };
+  }>;
 };
 
-export async function PATCH(request: Request, context: MemberRouteContext) {
+export async function PATCH(
+  request: Request,
+  context: MemberRouteContext,
+) {
+  const { memberId } = await context.params;
   if (!isTrustedMutationRequest(request)) {
     return apiError(
       "CROSS_SITE_REQUEST_BLOCKED",
@@ -34,7 +38,7 @@ export async function PATCH(request: Request, context: MemberRouteContext) {
     return authorization.response;
   }
 
-  const parsedMemberId = memberIdSchema.safeParse(context.params.memberId);
+ const parsedMemberId = memberIdSchema.safeParse(memberId);
 
   if (!parsedMemberId.success) {
     return apiError("VALIDATION_ERROR", "The member identifier is invalid.", 422);

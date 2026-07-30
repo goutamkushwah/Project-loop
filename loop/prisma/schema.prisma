@@ -9,6 +9,158 @@ datasource db {
   extensions = [vector]
 }
 
+model Workspace {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String                @db.VarChar(120)
+  slug           String                @unique @db.VarChar(80)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  embeddings     Embedding[]
+  feedback       Feedback[]
+  feedbackThemes FeedbackTheme[]
+  reports        Report[]
+  themes         Theme[]
+  users          User[]
+  invitations    WorkspaceInvitation[]
+
+  @@index([createdAt])
+}
+
+model User {
+  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String                @db.VarChar(120)
+  email              String                @unique @db.VarChar(254)
+  passwordHash       String                @db.VarChar(255)
+  role               UserRole              @default(VIEWER)
+  isActive           Boolean               @default(true)
+  emailVerifiedAt    DateTime?             @db.Timestamptz(3)
+  lastLoginAt        DateTime?             @db.Timestamptz(3)
+  createdAt          DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @db.Timestamptz(3)
+  workspaceId        String                @db.Uuid
+  generatedReports   Report[]              @relation("ReportGenerator")
+  workspace          Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitationsCreated WorkspaceInvitation[] @relation("InvitationCreator")
+
+  @@index([workspaceId, role])
+  @@index([workspaceId, isActive])
+}
+
+model WorkspaceInvitation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String    @db.VarChar(254)
+  role        UserRole  @default(VIEWER)
+  tokenHash   String    @unique @db.Char(64)
+  expiresAt   DateTime  @db.Timestamptz(3)
+  acceptedAt  DateTime? @db.Timestamptz(3)
+  revokedAt   DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  workspaceId String    @db.Uuid
+  invitedById String?   @db.Uuid
+  invitedBy   User?     @relation("InvitationCreator", fields: [invitedById], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, expiresAt])
+  @@index([invitedById])
+}
+
+model Feedback {
+  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content                 String
+  channel                 FeedbackChannel
+  sourceRef               String?              @db.VarChar(255)
+  customerLabel           String?              @db.VarChar(160)
+  sentiment               FeedbackSentiment?
+  sentimentScore          Decimal?             @db.Decimal(4, 3)
+  featureArea             String?              @db.VarChar(120)
+  classificationRationale String?              @db.VarChar(500)
+  classificationStatus    ClassificationStatus @default(PENDING)
+  classificationAttempts  Int                  @default(0)
+  classificationError     String?
+  classifiedAt            DateTime?            @db.Timestamptz(3)
+  status                  FeedbackStatus       @default(NEW)
+  createdAt               DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime             @updatedAt @db.Timestamptz(3)
+  workspaceId             String               @db.Uuid
+  embedding               Embedding?
+  workspace               Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  themes                  FeedbackTheme[]
+
+  @@unique([workspaceId, channel, sourceRef])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, channel, createdAt(sort: Desc)])
+  @@index([workspaceId, sentiment, createdAt(sort: Desc)])
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+  @@index([workspaceId, classificationStatus, createdAt(sort: Desc)])
+}
+
+model Theme {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String          @db.VarChar(120)
+  description String          @db.VarChar(500)
+  color       String          @db.VarChar(7)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+  workspaceId String          @db.Uuid
+  feedback    FeedbackTheme[]
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, createdAt])
+}
+
+model FeedbackTheme {
+  feedbackId  String    @db.Uuid
+  themeId     String    @db.Uuid
+  workspaceId String    @db.Uuid
+  confidence  Decimal   @db.Decimal(4, 3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  feedback    Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  theme       Theme     @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([feedbackId, themeId])
+  @@index([workspaceId, themeId])
+  @@index([workspaceId, feedbackId])
+}
+
+model Embedding {
+  id          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feedbackId  String                @unique @db.Uuid
+  workspaceId String                @db.Uuid
+  vector      Unsupported("vector")
+  provider    String                @db.VarChar(80)
+  model       String                @db.VarChar(120)
+  dimensions  Int
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+  feedback    Feedback              @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model Report {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String    @db.VarChar(180)
+  periodStart   DateTime  @db.Timestamptz(3)
+  periodEnd     DateTime  @db.Timestamptz(3)
+  contentJson   Json
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  workspaceId   String    @db.Uuid
+  generatedById String?   @db.Uuid
+  generatedBy   User?     @relation("ReportGenerator", fields: [generatedById], references: [id])
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, periodStart, periodEnd])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([generatedById])
+}
+
 enum UserRole {
   ADMIN
   ANALYST
@@ -44,164 +196,4 @@ enum ClassificationStatus {
   COMPLETED
   FAILED
   REVIEW_REQUIRED
-}
-
-model Workspace {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @db.VarChar(120)
-  slug      String   @unique @db.VarChar(80)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
-
-  users          User[]
-  invitations    WorkspaceInvitation[]
-  feedback       Feedback[]
-  themes         Theme[]
-  feedbackThemes FeedbackTheme[]
-  embeddings     Embedding[]
-  reports        Report[]
-
-  @@index([createdAt])
-}
-
-model User {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name            String    @db.VarChar(120)
-  email           String    @unique @db.VarChar(254)
-  passwordHash    String    @db.VarChar(255)
-  role            UserRole  @default(VIEWER)
-  isActive        Boolean   @default(true)
-  emailVerifiedAt DateTime? @db.Timestamptz(3)
-  lastLoginAt     DateTime? @db.Timestamptz(3)
-  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
-  workspaceId     String    @db.Uuid
-
-  workspace          Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  generatedReports   Report[]              @relation("ReportGenerator")
-  invitationsCreated WorkspaceInvitation[] @relation("InvitationCreator")
-
-  @@index([workspaceId, role])
-  @@index([workspaceId, isActive])
-}
-
-model WorkspaceInvitation {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email       String    @db.VarChar(254)
-  role        UserRole  @default(VIEWER)
-  tokenHash   String    @unique @db.Char(64)
-  expiresAt   DateTime  @db.Timestamptz(3)
-  acceptedAt  DateTime? @db.Timestamptz(3)
-  revokedAt   DateTime? @db.Timestamptz(3)
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
-  workspaceId String    @db.Uuid
-  invitedById String?   @db.Uuid
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invitedBy User?     @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: SetNull)
-
-  @@index([workspaceId, email])
-  @@index([workspaceId, createdAt(sort: Desc)])
-  @@index([workspaceId, expiresAt])
-  @@index([invitedById])
-}
-
-model Feedback {
-  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  content                 String               @db.Text
-  channel                 FeedbackChannel
-  sourceRef               String?              @db.VarChar(255)
-  customerLabel           String?              @db.VarChar(160)
-  sentiment               FeedbackSentiment?
-  sentimentScore          Decimal?             @db.Decimal(4, 3)
-  featureArea             String?              @db.VarChar(120)
-  classificationRationale String?              @db.VarChar(500)
-  classificationStatus    ClassificationStatus @default(PENDING)
-  classificationAttempts  Int                  @default(0)
-  classificationError     String?              @db.Text
-  classifiedAt            DateTime?            @db.Timestamptz(3)
-  status                  FeedbackStatus       @default(NEW)
-  createdAt               DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime             @updatedAt @db.Timestamptz(3)
-  workspaceId             String               @db.Uuid
-
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  themes    FeedbackTheme[]
-  embedding Embedding?
-
-  @@unique([workspaceId, channel, sourceRef])
-  @@index([workspaceId, createdAt(sort: Desc)])
-  @@index([workspaceId, channel, createdAt(sort: Desc)])
-  @@index([workspaceId, sentiment, createdAt(sort: Desc)])
-  @@index([workspaceId, status, createdAt(sort: Desc)])
-  @@index([workspaceId, classificationStatus, createdAt(sort: Desc)])
-}
-
-model Theme {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @db.VarChar(120)
-  description String   @db.VarChar(500)
-  color       String   @db.VarChar(7)
-  createdAt   DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
-  workspaceId String   @db.Uuid
-
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  feedback  FeedbackTheme[]
-
-  @@unique([workspaceId, name])
-  @@index([workspaceId, createdAt])
-}
-
-model FeedbackTheme {
-  feedbackId  String   @db.Uuid
-  themeId     String   @db.Uuid
-  workspaceId String   @db.Uuid
-  confidence  Decimal  @db.Decimal(4, 3)
-  createdAt   DateTime @default(now()) @db.Timestamptz(3)
-
-  feedback  Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  theme     Theme     @relation(fields: [themeId], references: [id], onDelete: Cascade)
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@id([feedbackId, themeId])
-  @@index([workspaceId, themeId])
-  @@index([workspaceId, feedbackId])
-}
-
-model Embedding {
-  id          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  feedbackId  String                @unique @db.Uuid
-  workspaceId String                @db.Uuid
-  vector      Unsupported("vector")
-  provider    String                @db.VarChar(80)
-  model       String                @db.VarChar(120)
-  dimensions  Int
-  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
-
-  feedback  Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, createdAt])
-}
-
-model Report {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title         String   @db.VarChar(180)
-  periodStart   DateTime @db.Timestamptz(3)
-  periodEnd     DateTime @db.Timestamptz(3)
-  contentJson   Json
-  createdAt     DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
-  workspaceId   String   @db.Uuid
-  generatedById String?  @db.Uuid
-
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  generatedBy User?     @relation("ReportGenerator", fields: [generatedById], references: [id], onDelete: SetNull)
-
-  @@index([workspaceId, periodStart, periodEnd])
-  @@index([workspaceId, createdAt(sort: Desc)])
-  @@index([generatedById])
 }
