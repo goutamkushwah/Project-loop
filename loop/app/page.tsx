@@ -4,20 +4,12 @@ import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const foundationItems = [
-  "Three server-enforced workspace roles",
-  "Tenant-scoped member queries",
-  "Single-use teammate invitations",
-  "Role and account-status management",
-  "Last-administrator protection",
-] as const;
-
 export default async function HomePage() {
   const session = await auth();
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-slate-50">
-      {/* Background gradient */}
+      {/* Background */}
       <div
         aria-hidden="true"
         className="absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-loop-100 via-violet-50 to-transparent"
@@ -27,7 +19,10 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-loop-900 text-lg font-black text-white shadow-panel">
               L
             </div>
@@ -101,7 +96,7 @@ export default async function HomePage() {
                   href="/signup"
                   className="rounded-xl bg-loop-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
                 >
-                  Create workspace
+                  Create Workspace
                 </Link>
               </>
             )}
@@ -109,13 +104,13 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Main content */}
+      {/* Main */}
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col px-6 py-10 sm:px-10 lg:px-16">
         <section
           id="main-content"
           className="grid flex-1 items-center gap-14 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:py-20"
         >
-          {/* Left content */}
+          {/* Left */}
           <div>
             <p className="mb-5 text-sm font-bold uppercase tracking-[0.22em] text-loop-600">
               Zidio-Loop
@@ -132,36 +127,19 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-             
-
-             
-            </div>
-
-            <div className="mt-10 flex flex-wrap gap-3">
               <Link
                 href={session?.user ? "/dashboard" : "/signup"}
                 className="rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
                 {session?.user
-                  ? "Continue to dashboard"
-                  : "Create your workspace"}
+                  ? "Continue to Dashboard"
+                  : "Create Your Workspace"}
               </Link>
 
-              <a
-                href="/api/health"
-                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
-                System health
-              </a>
+              
             </div>
           </div>
-
-          {/* Right card */}
-          
         </section>
-
-        {/* Footer */}
-        
       </div>
     </main>
   );

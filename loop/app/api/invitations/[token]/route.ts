@@ -16,13 +16,18 @@ export const runtime = "nodejs";
 const MAX_REQUEST_BYTES = 8 * 1024;
 
 type InvitationTokenRouteContext = {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 };
 
-export async function GET(_request: Request, context: InvitationTokenRouteContext) {
-  const parsedToken = invitationTokenSchema.safeParse(context.params.token);
+export async function GET(
+  _request: Request,
+  context: InvitationTokenRouteContext,
+) {
+  const { token } = await context.params;
+
+  const parsedToken = invitationTokenSchema.safeParse(token);
 
   if (!parsedToken.success) {
     return apiError("INVITATION_NOT_FOUND", "This invitation could not be found.", 404);
@@ -47,7 +52,11 @@ export async function GET(_request: Request, context: InvitationTokenRouteContex
   }
 }
 
-export async function POST(request: Request, context: InvitationTokenRouteContext) {
+export async function POST(
+  request: Request,
+  context: InvitationTokenRouteContext,
+) {
+  const { token } = await context.params;
   if (!isTrustedMutationRequest(request)) {
     return apiError(
       "CROSS_SITE_REQUEST_BLOCKED",
@@ -56,7 +65,7 @@ export async function POST(request: Request, context: InvitationTokenRouteContex
     );
   }
 
-  const parsedToken = invitationTokenSchema.safeParse(context.params.token);
+ const parsedToken = invitationTokenSchema.safeParse(token);
 
   if (!parsedToken.success) {
     return apiError("INVITATION_NOT_FOUND", "This invitation could not be found.", 404);

@@ -24,6 +24,7 @@ const ROLE_CAPABILITY_LABELS: Record<string, string> = {
 export default async function DashboardPage() {
   const user = await requireCurrentUser();
   const permissions = getRolePermissions(user.role);
+  const canCreateFeedback = hasPermission(user.role, PERMISSIONS.FEEDBACK_CREATE);
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
   return (
@@ -31,14 +32,14 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-5 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
-            Workspace access
+            foundation
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
             Welcome, {user.name.split(" ")[0]}.
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-            You are signed in to {user.workspace.name}. Your current permissions are loaded from the
-            database on every protected request rather than trusted from hidden interface controls.
+            Authentication, workspace isolation, role enforcement, and single-entry customer
+            feedback are now connected inside {user.workspace.name}.
           </p>
         </div>
 
@@ -47,7 +48,31 @@ export default async function DashboardPage() {
         </span>
       </div>
 
-      <section className="mt-8 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+      <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <span
+            aria-hidden="true"
+            className="grid size-11 place-items-center rounded-2xl bg-violet-50 text-xl text-violet-800"
+          >
+            ✦
+          </span>
+          <p className="mt-5 text-sm font-bold text-loop-700">Feedback record</p>
+          <h2 className="mt-2 text-2xl font-black text-loop-900">
+            {canCreateFeedback ? "Add customer feedback" : "Review customer feedback"}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            {canCreateFeedback
+              ? "Create validated manual entries and review the latest tenant-scoped records."
+              : "Open the workspace feedback record with read-only viewer access."}
+          </p>
+          <Link
+            href="/inbox"
+            className="mt-7 inline-flex rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+          >
+            Open feedback
+          </Link>
+        </article>
+
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-bold text-loop-700">Current role</p>
           <h2 className="mt-2 text-3xl font-black text-loop-900">{user.role}</h2>
@@ -67,25 +92,25 @@ export default async function DashboardPage() {
           {canManageMembers ? (
             <Link
               href="/settings/members"
-              className="mt-7 inline-flex rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+              className="mt-7 inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
             >
               Manage workspace members
             </Link>
           ) : null}
         </article>
 
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-bold text-loop-700">Server-enforced permissions</p>
-              <h2 className="mt-2 text-2xl font-black text-loop-900">What this role can do</h2>
+              <h2 className="mt-2 text-2xl font-black text-loop-900">Role capabilities</h2>
             </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 ring-1 ring-inset ring-emerald-200">
-              {permissions.length} permissions
+              {permissions.length}
             </span>
           </div>
 
-          <ul className="mt-7 grid gap-3 sm:grid-cols-2" aria-label={`${user.role} permissions`}>
+          <ul className="mt-7 space-y-3" aria-label={`${user.role} permissions`}>
             {permissions.map((permission) => (
               <li
                 key={permission}
@@ -108,8 +133,6 @@ export default async function DashboardPage() {
           </ul>
         </article>
       </section>
-
-     
     </main>
   );
 }
