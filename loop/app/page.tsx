@@ -24,7 +24,8 @@ export default async function HomePage() {
 
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col">
         <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
-  <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+  <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6"/>
+    
     {/* Logo */}
     <Link
       href="/"
@@ -126,6 +127,7 @@ export default async function HomePage() {
               </>
             )}
           </nav>
+          
         </header>
 
         <section
@@ -171,5 +173,6 @@ export default async function HomePage() {
         
       </div>
     </main>
+          
   );
 }
