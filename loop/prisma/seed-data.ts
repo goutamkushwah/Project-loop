@@ -1,27 +1,27 @@
 import { FeedbackChannel, UserRole } from "@prisma/client";
 
 export const DEMO_WORKSPACE = {
-  name: "Acme Cloud",
-  slug: "acme-cloud",
+  name: "Zidio Development",
+  slug: "zidio-development",
 } as const;
 
 export const DEMO_USERS = [
   {
-    name: "Aarav Mehta",
+    name: "Goutam",
     email: "admin@loop.demo",
     role: UserRole.ADMIN,
     passwordEnvironmentKey: "SEED_ADMIN_PASSWORD",
     defaultPassword: "LoopAdmin!2026",
   },
   {
-    name: "Maya Sharma",
+    name: "Gaurav",
     email: "analyst@loop.demo",
     role: UserRole.ANALYST,
     passwordEnvironmentKey: "SEED_ANALYST_PASSWORD",
     defaultPassword: "LoopAnalyst!2026",
   },
   {
-    name: "Rohan Verma",
+    name: "mohan",
     email: "viewer@loop.demo",
     role: UserRole.VIEWER,
     passwordEnvironmentKey: "SEED_VIEWER_PASSWORD",

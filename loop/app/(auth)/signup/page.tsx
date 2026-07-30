@@ -14,16 +14,20 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type SignupPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     callbackUrl?: string | string[];
-  };
+  }>;
 };
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
-  const rawCallbackUrl = Array.isArray(searchParams?.callbackUrl)
-    ? searchParams?.callbackUrl[0]
-    : searchParams?.callbackUrl;
+  const params = await searchParams;
+
+  const rawCallbackUrl = Array.isArray(params?.callbackUrl)
+    ? params.callbackUrl[0]
+    : params?.callbackUrl;
+
   const callbackUrl = sanitizeCallbackUrl(rawCallbackUrl);
+
   const session = await auth();
 
   if (session?.user) {
