@@ -90,7 +90,7 @@ export function SignupForm({ callbackUrl }: SignupFormProps) {
       });
 
       if (!signInResult || signInResult.error) {
-        router.replace(`/auth/login?registered=1&callbackUrl=${encodeURIComponent(callbackUrl)}`);
+        router.replace(`/login?registered=1&callbackUrl=${encodeURIComponent(callbackUrl)}`);
         return;
       }
 
@@ -259,7 +259,7 @@ export function SignupForm({ callbackUrl }: SignupFormProps) {
       <p className="text-center text-sm text-slate-600">
         Already have an account?{" "}
         <Link
-          href={`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           className="font-bold text-loop-700 underline decoration-loop-300 underline-offset-4 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
         >
           Sign in

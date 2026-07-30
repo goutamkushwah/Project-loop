@@ -104,7 +104,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       <p className="text-center text-sm text-slate-600">
         New to LOOP?{" "}
         <Link
-          href={`/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           className="font-bold text-loop-700 underline decoration-loop-300 underline-offset-4 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
         >
           Create a workspace

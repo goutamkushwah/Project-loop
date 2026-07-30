@@ -25,8 +25,8 @@ export const authOptions = {
     maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
-    signIn: "/auth/login",
-    error: "/auth/login",
+    signIn: "/login",
+    error: "/login",
   },
   providers: [
     CredentialsProvider({
@@ -178,7 +178,7 @@ export async function requireCurrentUser() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   return user;

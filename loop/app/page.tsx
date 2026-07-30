@@ -61,13 +61,13 @@ export default async function HomePage() {
             ) : (
               <>
                 <Link
-                  href="/auth/login"
+                  href="/login"
                   className="rounded-xl px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
                 >
                   Sign in
                 </Link>
                 <Link
-                  href="/auth/signup"
+                  href="/signup"
                   className="rounded-xl bg-loop-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
                 >
                   Create workspace
@@ -101,7 +101,7 @@ export default async function HomePage() {
 
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
-                href={session?.user ? "/app/login" : "/auth/signup"}
+                href={session?.user ? "/app/login" : "/signup"}
                 className="rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
                 {session?.user ? "Continue to dashboard" : "Create your workspace"}
