@@ -1,19 +1,38 @@
 import "server-only";
 
-import { PrismaClient } from "@prisma/client";
-
-import { env } from "@/lib/env";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
 };
 
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-  });
+class FakeDB {
+  user = {
+    async findUnique({
+      where,
+    }: {
+      where: { email: string };
+    }): Promise<User | null> {
+      return null;
+    },
 
-if (env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+    async create({
+      data,
+    }: {
+      data: {
+        name: string;
+        email: string;
+        password: string;
+      };
+    }): Promise<User> {
+      return {
+        id: Date.now().toString(),
+        name: data.name,
+        email: data.email,
+      };
+    },
+  };
 }
+
+export const db = new FakeDB();
