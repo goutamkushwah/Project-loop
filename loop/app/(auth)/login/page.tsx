@@ -14,26 +14,30 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type LoginPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     callbackUrl?: string | string[];
     registered?: string | string[];
-  };
+  }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const rawCallbackUrl = Array.isArray(searchParams?.callbackUrl)
-    ? searchParams?.callbackUrl[0]
-    : searchParams?.callbackUrl;
+  const params = await searchParams;
+
+  const rawCallbackUrl = Array.isArray(params?.callbackUrl)
+    ? params.callbackUrl[0]
+    : params?.callbackUrl;
+
   const callbackUrl = sanitizeCallbackUrl(rawCallbackUrl);
-  const session = await auth();
 
-  if (session?.user) {
-    redirect(callbackUrl);
-  }
+  // const session = await auth();
 
-  const registered = Array.isArray(searchParams?.registered)
-    ? searchParams?.registered[0]
-    : searchParams?.registered;
+  // if (session?.user) {
+  //   redirect("/dashboard");
+  // }
+
+  const registered = Array.isArray(params?.registered)
+    ? params.registered[0]
+    : params?.registered;
 
   return (
     <AuthShell
@@ -44,11 +48,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       {registered === "1" ? (
         <div
           role="status"
-          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4"
         >
           Your workspace was created. Sign in to continue.
         </div>
       ) : null}
+
       <LoginForm callbackUrl={callbackUrl} />
     </AuthShell>
   );

@@ -1,10 +1,11 @@
 import "server-only";
 
-import { cache } from "react";
+import { Prisma } from "@prisma/client";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { loginSchema } from "@/lib/auth-validation";
 import { db } from "@/lib/db";
@@ -14,6 +15,28 @@ import { verifyPassword } from "@/lib/password";
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 const DUMMY_PASSWORD_HASH =
   "scrypt$16384$8$1$000102030405060708090a0b0c0d0e0f$bb542213f0d3dbfa0cac83d1f8e80192e319de47e4d2c56e70245fbfc95bcc4015b02d1023e303a7415ae0a679fc0ab4baafa202b2a2e42f07a54482d3ad85ce";
+
+const currentUserSelect = Prisma.validator<Prisma.UserSelect>()({
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  isActive: true,
+  workspaceId: true,
+  createdAt: true,
+  lastLoginAt: true,
+  workspace: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+  },
+});
+
+export type CurrentUser = Prisma.UserGetPayload<{
+  select: typeof currentUserSelect;
+}>;
 
 export const authOptions = {
   secret: env.NEXTAUTH_SECRET,
@@ -81,9 +104,11 @@ export const authOptions = {
         }
 
         await db.user
-          .update({
+          .updateMany({
             where: {
               id: user.id,
+              workspaceId: user.workspaceId,
+              isActive: true,
             },
             data: {
               lastLoginAt: new Date(),
@@ -143,7 +168,7 @@ export function auth() {
   return getServerSession(authOptions);
 }
 
-export const getCurrentUser = cache(async () => {
+async function resolveCurrentUser(): Promise<CurrentUser | null> {
   const session = await auth();
 
   if (!session?.user?.id || !session.user.workspaceId) {
@@ -156,25 +181,17 @@ export const getCurrentUser = cache(async () => {
       workspaceId: session.user.workspaceId,
       isActive: true,
     },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      workspaceId: true,
-      lastLoginAt: true,
-      workspace: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-    },
+    select: currentUserSelect,
   });
-});
+}
 
-export async function requireCurrentUser() {
+export const getCurrentUser = cache(resolveCurrentUser);
+
+export function getCurrentApiUser(): Promise<CurrentUser | null> {
+  return resolveCurrentUser();
+}
+
+export async function requireCurrentUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
 
   if (!user) {

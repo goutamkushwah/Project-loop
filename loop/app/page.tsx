@@ -5,11 +5,11 @@ import { auth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const foundationItems = [
-  "Secure account registration",
-  "Hashed passwords with scrypt",
-  "Encrypted JWT sessions",
-  "Protected App Router pages",
-  "Persistent login across refresh",
+  "Three server-enforced workspace roles",
+  "Tenant-scoped member queries",
+  "Single-use teammate invitations",
+  "Role and account-status management",
+  "Last-administrator protection",
 ] as const;
 
 export default async function HomePage() {
@@ -101,43 +101,57 @@ export default async function HomePage() {
             Sign In
           </Link>
 
-          <Link
-            href="/signup"
-            className="rounded-xl bg-loop-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-loop-800"
-          >
-            Create Workspace
-          </Link>
-        </>
-      )}
-    </div>
-  </div>
-</header>
+          <nav className="flex items-center gap-2" aria-label="Account navigation">
+            {session?.user ? (
+              <Link
+                href="/dashboard"
+                className="rounded-xl bg-loop-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+              >
+                Open dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-xl px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-xl bg-loop-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+                >
+                  Create workspace
+                </Link>
+              </>
+            )}
+          </nav>
+        </header>
 
         <section
           id="main-content"
           className="grid flex-1 items-center gap-14 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:py-20"
         >
           <div>
-          
+            <p className="mb-5 text-sm font-bold uppercase tracking-[0.22em] text-loop-600">
+              Day 4 workspaces and RBAC
+            </p>
             <h1 className="max-w-4xl text-balance text-5xl font-black tracking-tight text-loop-900 sm:text-6xl lg:text-7xl">
               Project - Loop
             </h1>
             <p className="mt-7 max-w-2xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl">
-              Create a company workspace, sign in securely, and continue through a protected session
-              that survives browser refreshes.
+              Administrators manage members and roles, analysts operate the feedback workflow, and
+              viewers receive read-only access—all inside a strictly isolated company workspace.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
-                <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                Authentication ready
-              </span>
               
+             
             </div>
 
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
-                href={session?.user ? "/app/login" : "/signup"}
+                href={session?.user ? "/dashboard" : "/signup"}
                 className="rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
                 {session?.user ? "Continue to dashboard" : "Create your workspace"}
@@ -151,7 +165,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-         
+          
         </section>
 
         

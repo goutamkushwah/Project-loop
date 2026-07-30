@@ -4,6 +4,7 @@ import { apiError, apiSuccess } from "@/lib/api-response";
 import { registrationSchema } from "@/lib/auth-validation";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { isTrustedMutationRequest } from "@/lib/request-security";
 import { createWorkspaceSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,14 @@ const MAX_REQUEST_BYTES = 16 * 1024;
 const MAX_SLUG_ATTEMPTS = 3;
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationRequest(request)) {
+    return apiError(
+      "CROSS_SITE_REQUEST_BLOCKED",
+      "The cross-site registration request was blocked.",
+      403,
+    );
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.toLowerCase().includes("application/json")) {
@@ -49,27 +58,6 @@ export async function POST(request: Request) {
   }
 
   const { name, workspaceName, email, password } = parsedRegistration.data;
-
-  const existingUser = await db.user.findUnique({
-    where: {
-      email,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (existingUser) {
-    return apiError(
-      "EMAIL_ALREADY_EXISTS",
-      "An account already exists for this email address.",
-      409,
-      {
-        email: ["An account already exists for this email address."],
-      },
-    );
-  }
-
   const passwordHash = await hashPassword(password);
 
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {

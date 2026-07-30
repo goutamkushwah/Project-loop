@@ -88,6 +88,7 @@ async function seed(): Promise<void> {
           role: user.role,
           isActive: true,
         })),
+        skipDuplicates: true,
       });
 
       await transaction.theme.createMany({
