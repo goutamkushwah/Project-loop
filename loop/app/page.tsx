@@ -86,7 +86,7 @@ export default async function HomePage() {
               Day 4 workspaces and RBAC
             </p>
             <h1 className="max-w-4xl text-balance text-5xl font-black tracking-tight text-loop-900 sm:text-6xl lg:text-7xl">
-              The right access for every teammate.
+              Project - Loop
             </h1>
             <p className="mt-7 max-w-2xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl">
               Administrators manage members and roles, analysts operate the feedback workflow, and
@@ -94,13 +94,8 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
-                <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                RBAC ready
-              </span>
-              <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
-                Week 1 · Foundation &amp; Data Layer
-              </span>
+              
+             
             </div>
 
             <div className="mt-10 flex flex-wrap gap-3">
@@ -119,52 +114,10 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <aside className="rounded-3xl border border-white/80 bg-white/90 p-7 shadow-panel backdrop-blur sm:p-9">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-loop-600">Workspace access checklist</p>
-                <h2 className="mt-1 text-2xl font-bold text-loop-900">Tenant-safe administration</h2>
-              </div>
-              <span className="rounded-lg bg-loop-100 px-3 py-1 text-xs font-bold text-loop-700">
-                DAY 4
-              </span>
-            </div>
-
-            <ul className="mt-7 space-y-4" aria-label="Completed workspace capabilities">
-              {foundationItems.map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="size-5 shrink-0 text-emerald-600"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.704 5.293a1 1 0 0 1 .003 1.414l-7.25 7.28a1 1 0 0 1-1.42 0l-3.744-3.76a1 1 0 0 1 1.414-1.414l3.04 3.052 6.543-6.57a1 1 0 0 1 1.414-.002Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-8 rounded-2xl bg-loop-900 p-5 text-white">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-loop-300">
-                Isolation by construction
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-200">
-                Member and invitation APIs derive workspace ownership from the authenticated server
-                session. Browser-supplied workspace IDs are never trusted.
-              </p>
-            </div>
-          </aside>
+          
         </section>
 
-        <footer className="border-t border-slate-200 py-6 text-sm text-slate-500">
-          Build it like a product. Ship it like a professional.
-        </footer>
+        
       </div>
     </main>
   );
