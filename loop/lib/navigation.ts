@@ -1,6 +1,6 @@
 export function sanitizeCallbackUrl(
   value: string | null | undefined,
-  fallback = "/app/login",
+  fallback = "/dashboard",
 ): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return fallback;
