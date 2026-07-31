@@ -53,12 +53,6 @@ export default async function HomePage() {
               Dashboard
             </Link>
 
-            <Link
-              href="/profile"
-              className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
-            >
-              Profile
-            </Link>
 
             <a
               href="#about"
