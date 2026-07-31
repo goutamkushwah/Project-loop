@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
+
 import "@/app/globals.css";
 
 const inter = Inter({
