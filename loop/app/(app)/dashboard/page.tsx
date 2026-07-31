@@ -133,6 +133,7 @@ export default async function DashboardPage() {
           </ul>
         </article>
       </section>
+      
     </main>
   );
 }
