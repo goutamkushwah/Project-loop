@@ -34,3 +34,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+# ✅ Week 1 Progress
+
+Week 1 focused on building the foundation of the platform — authentication, workspace structure, and role-based access.
+
+**Completed:**
+- User authentication (login & signup) using NextAuth
+- Role-Based Access Control — Administrator, Analyst, and Viewer roles
+- Multi-tenant workspace setup with isolated data per company
+- Team/member management — invite, list, and remove members
+- Database schema design (Workspace, User, Feedback, Theme, Report models) using Prisma + PostgreSQL
+- Initial feedback creation and listing (tenant-scoped)
+- Home page UI update with feature highlights and role overview
+
+**Next up (Week 2):**
+- Feedback CRUD (create, edit, delete)
+- CSV upload for bulk feedback
+- AI sentiment analysis using Claude AI
+- Analytics dashboard with charts
