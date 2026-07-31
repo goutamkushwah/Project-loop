@@ -9,7 +9,7 @@ export default async function HomePage() {
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-slate-50">
-      {/* Background */}
+      {/* Background gradient */}
       <div
         aria-hidden="true"
         className="absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-loop-100 via-violet-50 to-transparent"
@@ -19,10 +19,7 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-          >
+          <Link href="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-loop-900 text-lg font-black text-white shadow-panel">
               L
             </div>
@@ -53,6 +50,12 @@ export default async function HomePage() {
               Dashboard
             </Link>
 
+            <Link
+              href="/profile"
+              className="text-sm font-medium text-slate-700 transition hover:text-loop-900"
+            >
+              Profile
+            </Link>
 
             <a
               href="#about"
@@ -90,7 +93,7 @@ export default async function HomePage() {
                   href="/signup"
                   className="rounded-xl bg-loop-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
                 >
-                  Create Workspace
+                  Create workspace
                 </Link>
               </>
             )}
@@ -98,13 +101,13 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* Main content */}
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col px-6 py-10 sm:px-10 lg:px-16">
         <section
           id="main-content"
-          className="grid flex-1 items-center gap-14 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:py-20"
+          className="flex flex-1 items-center py-16 lg:py-20"
         >
-          {/* Left */}
+          {/* Left content */}
           <div>
             <p className="mb-5 text-sm font-bold uppercase tracking-[0.22em] text-loop-600">
               Zidio-Loop
@@ -126,14 +129,45 @@ export default async function HomePage() {
                 className="rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
                 {session?.user
-                  ? "Continue to Dashboard"
-                  : "Create Your Workspace"}
+                  ? "Continue to dashboard"
+                  : "Create your workspace"}
               </Link>
-
-              
             </div>
           </div>
         </section>
+
+        {/* About */}
+        <section
+          id="about"
+          className="scroll-mt-24 border-t border-slate-200 py-16"
+        >
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-loop-600">
+            About
+          </p>
+          <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight text-loop-900 sm:text-4xl">
+            LOOP turns scattered customer feedback into a ranked,
+            evidence-backed list of what to do next.
+          </h2>
+          <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600">
+            Support tickets, reviews, survey responses, and sales notes pile
+            up faster than any team can read them. LOOP brings that feedback
+            into one place, uses AI to classify and cluster it, surfaces
+            what&apos;s trending, and answers plain-English questions about
+            what customers actually want &mdash; built for product managers,
+            support leads, and founders.
+          </p>
+        </section>
+
+        {/* Footer */}
+        <footer className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 py-8 text-sm text-slate-500 sm:flex-row">
+          <p>&copy; {new Date().getFullYear()} Project LOOP. All rights reserved.</p>
+
+          <div className="flex items-center gap-6">
+            <Link href="/login" className="transition hover:text-loop-800">
+              Sign in
+            </Link>
+          </div>
+        </footer>
       </div>
     </main>
   );
