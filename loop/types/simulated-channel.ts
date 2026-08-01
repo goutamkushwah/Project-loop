@@ -13,4 +13,3 @@ export type SimulatedChannelImportSummary = {
   oldestFeedbackAt: string;
   newestFeedbackAt: string;
 };
-

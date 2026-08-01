@@ -38,8 +38,8 @@ export default async function DashboardPage() {
             Welcome, {user.name.split(" ")[0]}.
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-            Authentication, workspace isolation, role enforcement, manual entry, CSV import, and
-            simulated channel pulls are now connected inside {user.workspace.name}.
+            Authentication, workspace isolation, three ingestion paths, server-side search, pagination,
+            and the feedback status workflow are now connected inside {user.workspace.name}.
           </p>
         </div>
 
@@ -58,18 +58,18 @@ export default async function DashboardPage() {
           </span>
           <p className="mt-5 text-sm font-bold text-loop-700">Feedback record</p>
           <h2 className="mt-2 text-2xl font-black text-loop-900">
-            {canCreateFeedback ? "Add customer feedback" : "Review customer feedback"}
+            {canCreateFeedback ? "Search and triage feedback" : "Search customer feedback"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             {canCreateFeedback
-              ? "Create manual entries, import validated CSV files, pull simulated channels, and review tenant-scoped records."
-              : "Open the workspace feedback record with read-only viewer access."}
+              ? "Create records through three ingestion paths, search customer language, and move feedback through the triage workflow."
+              : "Search and paginate tenant-scoped feedback with read-only viewer access."}
           </p>
           <Link
             href="/inbox"
             className="mt-7 inline-flex rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
           >
-            Open feedback
+            Open inbox
           </Link>
         </article>
 
@@ -143,8 +143,8 @@ export default async function DashboardPage() {
         </h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-amber-900">
           The feedback APIs never accept an authoritative workspace identifier from the browser. They
-          derive the workspace from the active database user and scope every manual create, CSV
-          import, simulated pull, count, and list query to that tenant.
+          derive the workspace from the active database user and scope every ingestion, search,
+          pagination, lookup, and status mutation to that tenant.
         </p>
       </section>
     </main>

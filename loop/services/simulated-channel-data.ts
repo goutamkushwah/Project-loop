@@ -309,4 +309,3 @@ export const SIMULATED_CHANNEL_DATA: Record<
     },
   ],
 };
-

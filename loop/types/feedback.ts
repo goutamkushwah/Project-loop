@@ -9,6 +9,8 @@ export type ClassificationStatusValue =
   | "FAILED"
   | "REVIEW_REQUIRED";
 
+export type FeedbackSortOrder = "asc" | "desc";
+
 export type FeedbackListItem = {
   id: string;
   content: string;
@@ -32,4 +34,14 @@ export type FeedbackPage = {
     totalItems: number;
     totalPages: number;
   };
+  query: {
+    search: string;
+    sortOrder: FeedbackSortOrder;
+  };
+};
+
+export type FeedbackStatusUpdateResult = {
+  feedback: FeedbackListItem;
+  previousStatus: FeedbackStatusValue;
+  changed: boolean;
 };
