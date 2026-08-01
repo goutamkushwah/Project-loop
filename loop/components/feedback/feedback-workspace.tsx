@@ -5,16 +5,18 @@ import { useState } from "react";
 import { FeedbackCsvUpload } from "@/components/feedback/feedback-csv-upload";
 import { FeedbackEntryForm } from "@/components/feedback/feedback-entry-form";
 import { FeedbackList } from "@/components/feedback/feedback-list";
+import { SimulatedChannelImport } from "@/components/feedback/simulated-channel-import";
 import type { ApiErrorResponse, ApiSuccessResponse } from "@/types/api";
 import type { FeedbackListItem, FeedbackPage } from "@/types/feedback";
 import type { FeedbackCsvImportSummary } from "@/types/feedback-import";
+import type { SimulatedChannelImportSummary } from "@/types/simulated-channel";
 
 type FeedbackWorkspaceProps = {
   initialPage: FeedbackPage;
   canCreate: boolean;
 };
 
-type IngestionMode = "single" | "csv";
+type IngestionMode = "single" | "csv" | "channel";
 
 const PAGE_SIZE = 10;
 
@@ -75,6 +77,27 @@ export function FeedbackWorkspace({ initialPage, canCreate }: FeedbackWorkspaceP
     await loadPage(1);
   }
 
+  async function handleSimulatedImport(summary: SimulatedChannelImportSummary) {
+    setNotice(
+      `${summary.sourceName} added ${summary.importedRows.toLocaleString()} realistic records to this workspace.`,
+    );
+    await loadPage(1);
+  }
+
+  const ingestionHeading =
+    ingestionMode === "single"
+      ? "Add customer feedback"
+      : ingestionMode === "csv"
+        ? "Import a CSV file"
+        : "Pull from a simulated channel";
+
+  const ingestionDescription =
+    ingestionMode === "single"
+      ? "Record one customer comment with its source channel. Content and channel are required."
+      : ingestionMode === "csv"
+        ? "Validate and import up to 2,000 customer-feedback rows in one server-side operation."
+        : "Choose a local demo source to seed realistic records without calling a real third-party platform.";
+
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
       <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -83,18 +106,12 @@ export function FeedbackWorkspace({ initialPage, canCreate }: FeedbackWorkspaceP
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-loop-600">
               Feedback ingestion
             </p>
-            <h2 className="mt-2 text-2xl font-black text-loop-900">
-              {ingestionMode === "single" ? "Add customer feedback" : "Import a CSV file"}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              {ingestionMode === "single"
-                ? "Record one customer comment with its source channel. Content and channel are required."
-                : "Validate and import up to 2,000 customer-feedback rows in one server-side operation."}
-            </p>
+            <h2 className="mt-2 text-2xl font-black text-loop-900">{ingestionHeading}</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{ingestionDescription}</p>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1" role="tablist">
+        <div className="mt-6 grid grid-cols-3 rounded-xl bg-slate-100 p-1" role="tablist">
           <button
             type="button"
             role="tab"
@@ -103,7 +120,7 @@ export function FeedbackWorkspace({ initialPage, canCreate }: FeedbackWorkspaceP
               setNotice(null);
               setIngestionMode("single");
             }}
-            className={`rounded-lg px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 ${
+            className={`rounded-lg px-2 py-2 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 sm:px-3 sm:text-sm ${
               ingestionMode === "single"
                 ? "bg-white text-loop-900 shadow-sm"
                 : "text-slate-600 hover:text-loop-900"
@@ -119,7 +136,7 @@ export function FeedbackWorkspace({ initialPage, canCreate }: FeedbackWorkspaceP
               setNotice(null);
               setIngestionMode("csv");
             }}
-            className={`rounded-lg px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 ${
+            className={`rounded-lg px-2 py-2 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 sm:px-3 sm:text-sm ${
               ingestionMode === "csv"
                 ? "bg-white text-loop-900 shadow-sm"
                 : "text-slate-600 hover:text-loop-900"
@@ -127,21 +144,40 @@ export function FeedbackWorkspace({ initialPage, canCreate }: FeedbackWorkspaceP
           >
             CSV upload
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={ingestionMode === "channel"}
+            onClick={() => {
+              setNotice(null);
+              setIngestionMode("channel");
+            }}
+            className={`rounded-lg px-2 py-2 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 sm:px-3 sm:text-sm ${
+              ingestionMode === "channel"
+                ? "bg-white text-loop-900 shadow-sm"
+                : "text-slate-600 hover:text-loop-900"
+            }`}
+          >
+            Demo channel
+          </button>
         </div>
 
         <div className="mt-7">
           {canCreate ? (
             ingestionMode === "single" ? (
               <FeedbackEntryForm onCreated={handleCreated} />
-            ) : (
+            ) : ingestionMode === "csv" ? (
               <FeedbackCsvUpload onImported={handleImported} />
+            ) : (
+              <SimulatedChannelImport onImported={handleSimulatedImport} />
             )
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <p className="font-bold text-slate-900">Read-only workspace access</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Viewers can read workspace feedback but cannot create manual entries or upload CSV
-                files. Both APIs enforce this restriction with HTTP 403.
+                Viewers can read workspace feedback but cannot create manual entries, upload CSV
+                files, or pull simulated channel records. Every ingestion API enforces this
+                restriction with HTTP 403.
               </p>
             </div>
           )}

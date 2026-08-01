@@ -38,8 +38,8 @@ export default async function DashboardPage() {
             Welcome, {user.name.split(" ")[0]}.
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-            Authentication, workspace isolation, role enforcement, manual ingestion, and validated CSV
-            imports are now connected inside {user.workspace.name}.
+            Authentication, workspace isolation, role enforcement, manual entry, CSV import, and
+            simulated channel pulls are now connected inside {user.workspace.name}.
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             {canCreateFeedback
-              ? "Create manual entries, import validated CSV files, and review tenant-scoped records."
+              ? "Create manual entries, import validated CSV files, pull simulated channels, and review tenant-scoped records."
               : "Open the workspace feedback record with read-only viewer access."}
           </p>
           <Link
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         <p className="mt-3 max-w-4xl text-sm leading-6 text-amber-900">
           The feedback APIs never accept an authoritative workspace identifier from the browser. They
           derive the workspace from the active database user and scope every manual create, CSV
-          import, count, and list query to that tenant.
+          import, simulated pull, count, and list query to that tenant.
         </p>
       </section>
     </main>
