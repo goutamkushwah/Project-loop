@@ -133,7 +133,20 @@ export default async function DashboardPage() {
           </ul>
         </article>
       </section>
-      
+
+      <section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-6 sm:p-8">
+        <p className="text-sm font-bold uppercase tracking-[0.18em] text-amber-800">
+          Tenant-isolation rule
+        </p>
+        <h2 className="mt-2 text-xl font-black text-amber-950">
+          Feedback ownership comes from the authenticated server session.
+        </h2>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-amber-900">
+          The feedback APIs never accept an authoritative workspace identifier from the browser. They
+          derive the workspace from the active database user and scope every manual create, CSV
+          import, count, and list query to that tenant.
+        </p>
+      </section>
     </main>
   );
 }
