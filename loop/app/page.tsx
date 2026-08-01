@@ -65,6 +65,13 @@ export default async function HomePage() {
               </Link>
             ) : (
               <>
+              <Link
+              href="/about"
+              className="text-sm font-medium text-slate-700 hover:text-loop-900"
+            >
+              About
+            </Link>
+
                 <Link
                   href="/login"
                   className="text-sm font-medium text-slate-700 hover:text-loop-900"
