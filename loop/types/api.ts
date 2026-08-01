@@ -33,6 +33,7 @@ export type ApiErrorCode =
   | "CSV_HEADER_INVALID"
   | "CSV_ROW_LIMIT_EXCEEDED"
   | "CSV_IMPORT_FAILED"
+  | "SIMULATED_CHANNEL_IMPORT_FAILED"
   | "INTERNAL_SERVER_ERROR";
 
 export type ApiErrorResponse = {

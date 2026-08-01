@@ -7,7 +7,8 @@ import { listWorkspaceFeedback } from "@/services/feedback-service";
 
 export const metadata: Metadata = {
   title: "Feedback",
-  description: "Add, bulk import, and view customer feedback in the active LOOP workspace.",
+  description:
+    "Add, bulk import, simulate channel pulls, and view customer feedback in the active LOOP workspace.",
 };
 
 export const dynamic = "force-dynamic";
@@ -25,15 +26,15 @@ export default async function InboxPage() {
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="mb-8 border-b border-slate-200 pb-8">
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
-          Core application · Day 6
+          Core application · Day 7
         </p>
         <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
           Customer feedback
         </h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-          Add one record manually or upload a validated CSV into the isolated {user.workspace.name}
-          workspace. Every imported row is stored as NEW and queued with a PENDING classification
-          state for the scheduled AI sprint.
+          Add one record, upload a validated CSV, or pull realistic records from a local simulated
+          source into the isolated {user.workspace.name} workspace. Real third-party integrations
+          remain intentionally out of scope.
         </p>
       </div>
 
