@@ -13,55 +13,55 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
-      <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
+      <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600 dark:text-loop-400">
         Your account
       </p>
-      <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
+      <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900 dark:text-white">
         Profile
       </h1>
-      <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+      <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
         Account details are read from your active session and workspace
         record.
       </p>
 
-      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+        <div className="flex items-center gap-4 border-b border-slate-100 pb-6 dark:border-slate-800">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-loop-900 text-xl font-black text-white">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-900">{user.name}</p>
-            <p className="text-sm text-slate-500">{user.email}</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">{user.name}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
           </div>
-          <span className="ml-auto w-fit rounded-full bg-loop-100 px-4 py-2 text-sm font-bold text-loop-800">
+          <span className="ml-auto w-fit rounded-full bg-loop-100 px-4 py-2 text-sm font-bold text-loop-800 dark:bg-loop-900 dark:text-loop-200">
             {user.role}
           </span>
         </div>
 
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Workspace
             </dt>
-            <dd className="mt-2 font-semibold text-slate-900">
+            <dd className="mt-2 font-semibold text-slate-900 dark:text-white">
               {user.workspace.name}
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Account status
             </dt>
-            <dd className="mt-2 font-semibold text-slate-900">
+            <dd className="mt-2 font-semibold text-slate-900 dark:text-white">
               {user.isActive ? "Active" : "Inactive"}
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Member since
             </dt>
-            <dd className="mt-2 font-semibold text-slate-900">
+            <dd className="mt-2 font-semibold text-slate-900 dark:text-white">
               {new Date(user.createdAt).toLocaleDateString(undefined, {
                 year: "numeric",
                 month: "long",
@@ -70,11 +70,11 @@ export default async function ProfilePage() {
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <dt className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Last login
             </dt>
-            <dd className="mt-2 font-semibold text-slate-900">
+            <dd className="mt-2 font-semibold text-slate-900 dark:text-white">
               {user.lastLoginAt
                 ? new Date(user.lastLoginAt).toLocaleString(undefined, {
                     dateStyle: "medium",
@@ -85,11 +85,11 @@ export default async function ProfilePage() {
           </div>
         </dl>
 
-        <div className="mt-6 rounded-2xl bg-loop-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-loop-700">
+        <div className="mt-6 rounded-2xl bg-loop-50 p-4 dark:bg-loop-950">
+          <p className="text-xs font-bold uppercase tracking-wide text-loop-700 dark:text-loop-300">
             What your role can do
           </p>
-          <p className="mt-1 text-sm leading-6 text-loop-900">
+          <p className="mt-1 text-sm leading-6 text-loop-900 dark:text-loop-100">
             {getRoleSummary(user.role)}
           </p>
         </div>
