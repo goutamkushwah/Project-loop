@@ -13,20 +13,20 @@ export default async function ForbiddenPage() {
 
   return (
     <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-3xl place-items-center px-5 py-12 sm:px-8">
-      <section className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-12">
+      <section className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
         <span
           aria-hidden="true"
-          className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-50 text-2xl font-black text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+          className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-50 text-2xl font-black text-amber-700"
         >
           403
         </span>
-        <p className="mt-6 text-sm font-bold uppercase tracking-[0.2em] text-loop-600 dark:text-loop-400">
+        <p className="mt-6 text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
           Access denied
         </p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-loop-900 dark:text-white">
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-loop-900">
           Your role cannot open this page.
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">
+        <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-600">
           You are signed in as {user.role} in {user.workspace.name}. Ask a workspace administrator
           when your responsibilities require additional access.
         </p>

@@ -1,16 +1,16 @@
 import Link from "next/link";
 
 import { auth } from "@/lib/auth";
-import ThemeToggle from "@/components/theme/theme-toggle";
+
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await auth();
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <main className="min-h-screen bg-slate-50">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
@@ -19,10 +19,10 @@ export default async function HomePage() {
             </div>
 
             <div>
-              <h1 className="text-lg font-bold tracking-wider text-loop-900 dark:text-white">
+              <h1 className="text-lg font-bold tracking-wider text-loop-900">
                 LOOP
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500">
                 Customer Feedback Platform
               </p>
             </div>
@@ -32,14 +32,14 @@ export default async function HomePage() {
           <nav className="flex items-center gap-6">
             <Link
               href="/"
-              className="text-sm font-medium text-slate-700 hover:text-loop-900 dark:text-slate-300 dark:hover:text-white"
+              className="text-sm font-medium text-slate-700 hover:text-loop-900"
             >
               Home
             </Link>
 
             <Link
               href="/about"
-              className="text-sm font-medium text-slate-700 hover:text-loop-900 dark:text-slate-300 dark:hover:text-white"
+              className="text-sm font-medium text-slate-700 hover:text-loop-900"
             >
               About
             </Link>
@@ -47,7 +47,7 @@ export default async function HomePage() {
             {session?.user && (
               <Link
                 href="/dashboard"
-                className="text-sm font-medium text-slate-700 hover:text-loop-900 dark:text-slate-300 dark:hover:text-white"
+                className="text-sm font-medium text-slate-700 hover:text-loop-900"
               >
                 Dashboard
               </Link>
@@ -56,8 +56,6 @@ export default async function HomePage() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
-            <ThemeToggle />
-
             {session?.user ? (
               <Link
                 href="/dashboard"
@@ -69,7 +67,7 @@ export default async function HomePage() {
               <>
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-slate-700 hover:text-loop-900 dark:text-slate-300 dark:hover:text-white"
+                  className="text-sm font-medium text-slate-700 hover:text-loop-900"
                 >
                   Sign In
                 </Link>
@@ -88,11 +86,11 @@ export default async function HomePage() {
 
       {/* Hero Section */}
       <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-7xl flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-5xl font-extrabold text-loop-900 dark:text-white sm:text-6xl">
+        <h1 className="text-5xl font-extrabold text-loop-900 sm:text-6xl">
           Project LOOP
         </h1>
 
-        <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+        <p className="mt-6 max-w-2xl text-lg text-slate-600">
           AI-powered customer feedback intelligence platform that helps teams
           collect, manage, and analyze customer feedback in one place.
         </p>
@@ -107,7 +105,7 @@ export default async function HomePage() {
 
           <Link
             href="/about"
-            className="rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-100"
           >
             Learn More
           </Link>
