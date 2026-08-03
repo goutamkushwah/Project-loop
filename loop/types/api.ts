@@ -38,6 +38,7 @@ export type ApiErrorCode =
   | "CSV_ROW_LIMIT_EXCEEDED"
   | "CSV_IMPORT_FAILED"
   | "SIMULATED_CHANNEL_IMPORT_FAILED"
+  | "DASHBOARD_ANALYTICS_FAILED"
   | "INTERNAL_SERVER_ERROR";
 
 export type ApiErrorResponse = {
