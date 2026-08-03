@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { DashboardAnalyticsPanel } from "@/components/dashboard/dashboard-analytics";
 import { requireCurrentUser } from "@/lib/auth";
 import { getRolePermissions, getRoleSummary, hasPermission, PERMISSIONS } from "@/lib/rbac";
 
@@ -133,6 +134,9 @@ export default async function DashboardPage() {
           </ul>
         </article>
       </section>
+      <div className="mt-8">
+        <DashboardAnalyticsPanel />
+      </div>
 
       <section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-6 sm:p-8">
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-amber-800">
