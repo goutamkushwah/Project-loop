@@ -1,10 +1,6 @@
 import Link from "next/link";
 
 import { auth } from "@/lib/auth";
-<<<<<<< HEAD
-=======
-import ThemeToggle from "@/components/theme/theme-toggle";
->>>>>>> c87dbf9f41788c6279f81b001d740f99e1a6c0b9
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +26,7 @@ export default async function HomePage() {
               <h1 className="text-lg font-bold tracking-wider text-loop-900">
                 LOOP
               </h1>
-<<<<<<< HEAD
               <p className="text-xs text-slate-500">
-=======
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
->>>>>>> c87dbf9f41788c6279f81b001d740f99e1a6c0b9
                 Customer Feedback Platform
               </p>
             </div>
@@ -72,12 +63,6 @@ export default async function HomePage() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-<<<<<<< HEAD
-=======
-
-            <ThemeToggle />
-
->>>>>>> c87dbf9f41788c6279f81b001d740f99e1a6c0b9
             {session?.user ? (
               <Link
                 href="/dashboard"
@@ -110,21 +95,11 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-7xl flex-col items-center justify-center px-6 text-center">
-<<<<<<< HEAD
         <h1 className="text-5xl font-extrabold text-loop-900 sm:text-6xl">
           Project LOOP
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg text-slate-600">
-=======
-
-        <h1 className="text-5xl font-extrabold text-loop-900 dark:text-white sm:text-6xl">
-          Project LOOP
-        </h1>
-
-
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
->>>>>>> c87dbf9f41788c6279f81b001d740f99e1a6c0b9
           AI-powered customer feedback intelligence platform that helps teams
           collect, manage, and analyze customer feedback in one place.
         </p>
@@ -142,11 +117,7 @@ export default async function HomePage() {
 
           <Link
             href="/about"
-<<<<<<< HEAD
             className="rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-100"
-=======
-            className="rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
->>>>>>> c87dbf9f41788c6279f81b001d740f99e1a6c0b9
           >
             Learn More
           </Link>
