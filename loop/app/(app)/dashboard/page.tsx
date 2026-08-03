@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
             Authentication, workspace isolation, three ingestion paths, server-side search, pagination,
-            and the feedback status workflow are now connected inside {user.workspace.name}.
+            compound inbox filters, and the feedback status workflow are now connected inside {user.workspace.name}.
           </p>
         </div>
 
@@ -58,12 +58,12 @@ export default async function DashboardPage() {
           </span>
           <p className="mt-5 text-sm font-bold text-loop-700">Feedback record</p>
           <h2 className="mt-2 text-2xl font-black text-loop-900">
-            {canCreateFeedback ? "Search and triage feedback" : "Search customer feedback"}
+            {canCreateFeedback ? "Filter and triage feedback" : "Filter customer feedback"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             {canCreateFeedback
-              ? "Create records through three ingestion paths, search customer language, and move feedback through the triage workflow."
-              : "Search and paginate tenant-scoped feedback with read-only viewer access."}
+              ? "Create records through three ingestion paths, combine search with five filter dimensions, and move feedback through the triage workflow."
+              : "Search, filter, and paginate tenant-scoped feedback with read-only viewer access."}
           </p>
           <Link
             href="/inbox"
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
         </h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-amber-900">
           The feedback APIs never accept an authoritative workspace identifier from the browser. They
-          derive the workspace from the active database user and scope every ingestion, search,
+          derive the workspace from the active database user and scope every ingestion, search, filter,
           pagination, lookup, and status mutation to that tenant.
         </p>
       </section>

@@ -14,6 +14,7 @@ import type {
   FeedbackPage,
   FeedbackStatusUpdateResult,
   FeedbackStatusValue,
+  FeedbackThemeOption,
 } from "@/types/feedback";
 
 export class FeedbackServiceError extends Error {
@@ -41,6 +42,19 @@ const feedbackSelect = Prisma.validator<Prisma.FeedbackSelect>()({
   status: true,
   createdAt: true,
   updatedAt: true,
+  themes: {
+    orderBy: [{ confidence: "desc" }, { themeId: "asc" }],
+    select: {
+      confidence: true,
+      theme: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      },
+    },
+  },
 });
 
 type SelectedFeedback = Prisma.FeedbackGetPayload<{
@@ -49,6 +63,10 @@ type SelectedFeedback = Prisma.FeedbackGetPayload<{
 
 type FeedbackCountRow = {
   count: bigint;
+};
+
+type FeedbackIdRow = {
+  id: string;
 };
 
 const NEXT_STATUS: Record<FeedbackStatusValue, FeedbackStatusValue | null> = {
@@ -67,6 +85,12 @@ function serializeFeedback(feedback: SelectedFeedback): FeedbackListItem {
     sentiment: feedback.sentiment,
     sentimentScore: feedback.sentimentScore?.toNumber() ?? null,
     featureArea: feedback.featureArea,
+    themes: feedback.themes.map((assignment) => ({
+      id: assignment.theme.id,
+      name: assignment.theme.name,
+      color: assignment.theme.color,
+      confidence: assignment.confidence.toNumber(),
+    })),
     classificationStatus: feedback.classificationStatus,
     status: feedback.status,
     createdAt: feedback.createdAt.toISOString(),
@@ -74,103 +98,158 @@ function serializeFeedback(feedback: SelectedFeedback): FeedbackListItem {
   };
 }
 
-async function searchWorkspaceFeedback(
+function utcDateStart(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+function utcDayAfter(value: string): Date {
+  const date = utcDateStart(value);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date;
+}
+
+function buildFeedbackWhereSql(
   workspaceId: string,
   query: FeedbackListQuery,
-  skip: number,
-): Promise<{ totalItems: number; feedbackItems: SelectedFeedback[] }> {
-  const sortDirection = query.sortOrder === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
-  const search = query.search;
+): Prisma.Sql {
+  let whereSql = Prisma.sql`f."workspaceId" = CAST(${workspaceId} AS uuid)`;
 
-  const [countRows, feedbackItems] = await db.$transaction([
-    db.$queryRaw<FeedbackCountRow[]>(Prisma.sql`
-      SELECT COUNT(*)::bigint AS "count"
-      FROM "Feedback"
-      WHERE "workspaceId" = CAST(${workspaceId} AS uuid)
-        AND to_tsvector('english', "content") @@ plainto_tsquery('english', ${search})
-    `),
-    db.$queryRaw<SelectedFeedback[]>(Prisma.sql`
-      SELECT
-        "id",
-        "content",
-        "channel",
-        "sourceRef",
-        "customerLabel",
-        "sentiment",
-        "sentimentScore",
-        "featureArea",
-        "classificationStatus",
-        "status",
-        "createdAt",
-        "updatedAt"
-      FROM "Feedback"
-      WHERE "workspaceId" = CAST(${workspaceId} AS uuid)
-        AND to_tsvector('english', "content") @@ plainto_tsquery('english', ${search})
-      ORDER BY "createdAt" ${sortDirection}, "id" ASC
-      LIMIT ${query.pageSize}
-      OFFSET ${skip}
-    `),
-  ]);
+  if (query.search) {
+    whereSql = Prisma.sql`${whereSql}
+      AND to_tsvector('english', f."content") @@ plainto_tsquery('english', ${query.search})`;
+  }
 
-  return {
-    totalItems: countRows[0] ? Number(countRows[0].count) : 0,
-    feedbackItems,
-  };
+  if (query.channel) {
+    whereSql = Prisma.sql`${whereSql}
+      AND f."channel" = CAST(${query.channel} AS "FeedbackChannel")`;
+  }
+
+  if (query.sentiment) {
+    whereSql = Prisma.sql`${whereSql}
+      AND f."sentiment" = CAST(${query.sentiment} AS "FeedbackSentiment")`;
+  }
+
+  if (query.status) {
+    whereSql = Prisma.sql`${whereSql}
+      AND f."status" = CAST(${query.status} AS "FeedbackStatus")`;
+  }
+
+  if (query.dateFrom) {
+    whereSql = Prisma.sql`${whereSql}
+      AND f."createdAt" >= ${utcDateStart(query.dateFrom)}`;
+  }
+
+  if (query.dateTo) {
+    whereSql = Prisma.sql`${whereSql}
+      AND f."createdAt" < ${utcDayAfter(query.dateTo)}`;
+  }
+
+  if (query.themeId) {
+    whereSql = Prisma.sql`${whereSql}
+      AND EXISTS (
+        SELECT 1
+        FROM "FeedbackTheme" AS ft
+        WHERE ft."feedbackId" = f."id"
+          AND ft."workspaceId" = CAST(${workspaceId} AS uuid)
+          AND ft."themeId" = CAST(${query.themeId} AS uuid)
+      )`;
+  }
+
+  return whereSql;
+}
+
+export async function listWorkspaceThemeOptions(
+  workspaceId: string,
+): Promise<FeedbackThemeOption[]> {
+  return db.theme.findMany({
+    where: {
+      workspaceId,
+    },
+    select: {
+      id: true,
+      name: true,
+      color: true,
+    },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+  });
 }
 
 export async function listWorkspaceFeedback(
   workspaceId: string,
   query: FeedbackListQuery,
 ): Promise<FeedbackPage> {
-  const skip = (query.page - 1) * query.pageSize;
+  const whereSql = buildFeedbackWhereSql(workspaceId, query);
+  const sortDirection = query.sortOrder === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
 
-  let totalItems: number;
-  let feedbackItems: SelectedFeedback[];
+  return db.$transaction(
+    async (transaction) => {
+      const countRows = await transaction.$queryRaw<FeedbackCountRow[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS "count"
+        FROM "Feedback" AS f
+        WHERE ${whereSql}
+      `);
+      const totalItems = countRows[0] ? Number(countRows[0].count) : 0;
+      const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+      const effectivePage = Math.min(query.page, totalPages);
+      const skip = (effectivePage - 1) * query.pageSize;
 
-  if (query.search) {
-    const searchResult = await searchWorkspaceFeedback(workspaceId, query, skip);
-    totalItems = searchResult.totalItems;
-    feedbackItems = searchResult.feedbackItems;
-  } else {
-    const where: Prisma.FeedbackWhereInput = {
-      workspaceId,
-    };
+      const idRows =
+        totalItems === 0
+          ? []
+          : await transaction.$queryRaw<FeedbackIdRow[]>(Prisma.sql`
+              SELECT f."id"
+              FROM "Feedback" AS f
+              WHERE ${whereSql}
+              ORDER BY f."createdAt" ${sortDirection}, f."id" ASC
+              LIMIT ${query.pageSize}
+              OFFSET ${skip}
+            `);
 
-    [totalItems, feedbackItems] = await db.$transaction([
-      db.feedback.count({ where }),
-      db.feedback.findMany({
-        where,
-        select: feedbackSelect,
-        orderBy: [{ createdAt: query.sortOrder }, { id: "asc" }],
-        skip,
-        take: query.pageSize,
-      }),
-    ]);
-  }
+      const orderedIds = idRows.map((row) => row.id);
+      const selectedFeedback =
+        orderedIds.length === 0
+          ? []
+          : await transaction.feedback.findMany({
+              where: {
+                workspaceId,
+                id: {
+                  in: orderedIds,
+                },
+              },
+              select: feedbackSelect,
+            });
+      const feedbackById = new Map(
+        selectedFeedback.map((feedback) => [feedback.id, feedback]),
+      );
+      const feedbackItems = orderedIds.flatMap((id) => {
+        const feedback = feedbackById.get(id);
+        return feedback ? [feedback] : [];
+      });
 
-  const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
-  const effectivePage = Math.min(query.page, totalPages);
-
-  if (effectivePage !== query.page && totalItems > 0) {
-    return listWorkspaceFeedback(workspaceId, {
-      ...query,
-      page: effectivePage,
-    });
-  }
-
-  return {
-    items: feedbackItems.map(serializeFeedback),
-    pagination: {
-      page: effectivePage,
-      pageSize: query.pageSize,
-      totalItems,
-      totalPages,
+      return {
+        items: feedbackItems.map(serializeFeedback),
+        pagination: {
+          page: effectivePage,
+          pageSize: query.pageSize,
+          totalItems,
+          totalPages,
+        },
+        query: {
+          search: query.search,
+          channel: query.channel ?? null,
+          sentiment: query.sentiment ?? null,
+          themeId: query.themeId ?? null,
+          status: query.status ?? null,
+          dateFrom: query.dateFrom ?? null,
+          dateTo: query.dateTo ?? null,
+          sortOrder: query.sortOrder,
+        },
+      };
     },
-    query: {
-      search: query.search,
-      sortOrder: query.sortOrder,
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     },
-  };
+  );
 }
 
 export async function createWorkspaceFeedback(

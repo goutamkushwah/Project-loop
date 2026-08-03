@@ -7,8 +7,8 @@ export default function InboxLoading() {
         <div className="mt-4 h-5 max-w-2xl rounded bg-slate-200" />
       </div>
 
-      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
-        <div className="h-[42rem] rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+        <div className="h-[46rem] rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="h-5 w-36 rounded bg-slate-200" />
           <div className="mt-4 h-8 w-64 rounded bg-slate-200" />
           <div className="mt-8 h-52 rounded-2xl bg-slate-100" />
@@ -16,17 +16,18 @@ export default function InboxLoading() {
           <div className="mt-5 h-12 rounded-xl bg-slate-100" />
         </div>
 
-        <div className="h-[42rem] rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="min-h-[46rem] rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="h-5 w-36 rounded bg-slate-200" />
-          <div className="mt-4 h-8 w-56 rounded bg-slate-200" />
-          <div className="mt-8 space-y-4">
-            {[0, 1, 2].map((item) => (
-              <div key={item} className="h-40 rounded-2xl bg-slate-100" />
+          <div className="mt-4 h-8 w-72 rounded bg-slate-200" />
+          <div className="mt-8 h-72 rounded-2xl bg-slate-100" />
+          <div className="mt-6 space-y-4">
+            {[0, 1].map((item) => (
+              <div key={item} className="h-44 rounded-2xl bg-slate-100" />
             ))}
           </div>
         </div>
       </div>
-      <span className="sr-only">Loading feedback workspace</span>
+      <span className="sr-only">Loading filtered feedback workspace</span>
     </main>
   );
 }

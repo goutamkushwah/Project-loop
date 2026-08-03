@@ -11,6 +11,27 @@ export type ClassificationStatusValue =
 
 export type FeedbackSortOrder = "asc" | "desc";
 
+export type FeedbackThemeOption = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type FeedbackThemeAssignment = FeedbackThemeOption & {
+  confidence: number;
+};
+
+export type FeedbackQueryState = {
+  search: string;
+  channel: FeedbackChannelValue | null;
+  sentiment: FeedbackSentimentValue | null;
+  themeId: string | null;
+  status: FeedbackStatusValue | null;
+  dateFrom: string | null;
+  dateTo: string | null;
+  sortOrder: FeedbackSortOrder;
+};
+
 export type FeedbackListItem = {
   id: string;
   content: string;
@@ -20,6 +41,7 @@ export type FeedbackListItem = {
   sentiment: FeedbackSentimentValue | null;
   sentimentScore: number | null;
   featureArea: string | null;
+  themes: FeedbackThemeAssignment[];
   classificationStatus: ClassificationStatusValue;
   status: FeedbackStatusValue;
   createdAt: string;
@@ -34,10 +56,7 @@ export type FeedbackPage = {
     totalItems: number;
     totalPages: number;
   };
-  query: {
-    search: string;
-    sortOrder: FeedbackSortOrder;
-  };
+  query: FeedbackQueryState;
 };
 
 export type FeedbackStatusUpdateResult = {
