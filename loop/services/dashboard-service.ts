@@ -1,5 +1,4 @@
 import "server-only";
-
 import { db } from "@/lib/db";
 import type { DashboardAnalyticsQuery } from "@/lib/dashboard-validation";
 import type {
@@ -7,21 +6,17 @@ import type {
   DashboardSentimentBreakdown,
   DashboardVolumePoint,
 } from "@/types/dashboard";
-
 const RANGE_DAYS: Record<DashboardAnalyticsQuery["range"], number> = {
   "7d": 7,
   "30d": 30,
   "90d": 90,
 };
-
 function startOfDayUtc(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
-
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
-
 export async function getWorkspaceDashboardAnalytics(
   workspaceId: string,
   query: DashboardAnalyticsQuery,
@@ -30,7 +25,6 @@ export async function getWorkspaceDashboardAnalytics(
   const now = new Date();
   const rangeStart = startOfDayUtc(new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000));
   const weekStart = startOfDayUtc(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000));
-
   const [totalItems, negativeItems, newThisWeek, rangeItems, topThemeRows] =
     await db.$transaction([
       db.feedback.count({ where: { workspaceId } }),
@@ -48,32 +42,28 @@ export async function getWorkspaceDashboardAnalytics(
         take: 5,
       }),
     ]);
-
   // Volume over time — one bucket per day across the selected range.
   const volumeByDay = new Map<string, number>();
   for (let i = 0; i < days; i += 1) {
     const day = new Date(rangeStart.getTime() + i * 24 * 60 * 60 * 1000);
     volumeByDay.set(toIsoDate(day), 0);
   }
-
   const sentimentBreakdown: DashboardSentimentBreakdown = {
     positive: 0,
     neutral: 0,
     negative: 0,
     unclassified: 0,
   };
-
   for (const item of rangeItems) {
     const key = toIsoDate(startOfDayUtc(item.createdAt));
     if (volumeByDay.has(key)) {
       volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + 1);
     }
-
     switch (item.sentiment) {
-      case "POSITIVE":
+      case "POS":
         sentimentBreakdown.positive += 1;
         break;
-      case "NEUTRAL":
+      case "NEU":
         sentimentBreakdown.neutral += 1;
         break;
       case "NEG":
@@ -83,11 +73,9 @@ export async function getWorkspaceDashboardAnalytics(
         sentimentBreakdown.unclassified += 1;
     }
   }
-
   const volumeOverTime: DashboardVolumePoint[] = Array.from(volumeByDay.entries()).map(
     ([date, count]) => ({ date, count }),
   );
-
   const themeIds = topThemeRows.map((row: { themeId: string }) => row.themeId);
   const themes: { id: string; name: string; color: string }[] = themeIds.length
     ? await db.theme.findMany({
@@ -96,7 +84,6 @@ export async function getWorkspaceDashboardAnalytics(
       })
     : [];
   const themeById = new Map(themes.map((theme) => [theme.id, theme]));
-
   const topThemes = topThemeRows
     .map((row: { themeId: string; _count: { themeId: number } }) => {
       const theme = themeById.get(row.themeId);
@@ -111,9 +98,7 @@ export async function getWorkspaceDashboardAnalytics(
       };
     })
     .filter((value: unknown): value is NonNullable<typeof value> => value !== null);
-
   const negativePercentage = totalItems === 0 ? 0 : Math.round((negativeItems / totalItems) * 1000) / 10;
-
   return {
     range: query.range,
     stats: {
