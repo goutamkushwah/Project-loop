@@ -11,13 +11,16 @@ import type { ApiErrorResponse, ApiSuccessResponse } from "@/types/api";
 import type {
   FeedbackListItem,
   FeedbackPage,
+  FeedbackQueryState,
   FeedbackStatusUpdateResult,
+  FeedbackThemeOption,
 } from "@/types/feedback";
 import type { FeedbackCsvImportSummary } from "@/types/feedback-import";
 import type { SimulatedChannelImportSummary } from "@/types/simulated-channel";
 
 type FeedbackWorkspaceProps = {
   initialPage: FeedbackPage;
+  themeOptions: FeedbackThemeOption[];
   canCreate: boolean;
   canUpdate: boolean;
 };
@@ -26,32 +29,87 @@ type IngestionMode = "single" | "csv" | "channel";
 
 const PAGE_SIZE = 10;
 
-function updateInboxUrl(page: number, search: string): void {
+function emptyFeedbackQuery(): FeedbackQueryState {
+  return {
+    search: "",
+    channel: null,
+    sentiment: null,
+    themeId: null,
+    status: null,
+    dateFrom: null,
+    dateTo: null,
+    sortOrder: "desc",
+  };
+}
+
+function normalizeFeedbackQuery(query: FeedbackQueryState): FeedbackQueryState {
+  return {
+    ...query,
+    search: query.search.trim().replace(/\s+/g, " "),
+  };
+}
+
+function buildFeedbackQueryString(page: number, query: FeedbackQueryState): URLSearchParams {
+  const searchParams = new URLSearchParams({
+    page: String(Math.max(1, page)),
+    pageSize: String(PAGE_SIZE),
+    sortOrder: query.sortOrder,
+  });
+
+  if (query.search) {
+    searchParams.set("search", query.search);
+  }
+
+  if (query.channel) {
+    searchParams.set("channel", query.channel);
+  }
+
+  if (query.sentiment) {
+    searchParams.set("sentiment", query.sentiment);
+  }
+
+  if (query.themeId) {
+    searchParams.set("themeId", query.themeId);
+  }
+
+  if (query.status) {
+    searchParams.set("status", query.status);
+  }
+
+  if (query.dateFrom) {
+    searchParams.set("dateFrom", query.dateFrom);
+  }
+
+  if (query.dateTo) {
+    searchParams.set("dateTo", query.dateTo);
+  }
+
+  return searchParams;
+}
+
+function updateInboxUrl(page: number, query: FeedbackQueryState): void {
   const url = new URL(window.location.href);
+  const searchParams = buildFeedbackQueryString(page, query);
 
-  if (page > 1) {
-    url.searchParams.set("page", String(page));
-  } else {
-    url.searchParams.delete("page");
+  searchParams.delete("pageSize");
+  searchParams.delete("sortOrder");
+
+  if (page <= 1) {
+    searchParams.delete("page");
   }
 
-  if (search) {
-    url.searchParams.set("search", search);
-  } else {
-    url.searchParams.delete("search");
-  }
-
+  url.search = searchParams.toString();
   window.history.replaceState(null, "", `${url.pathname}${url.search}`);
 }
 
 export function FeedbackWorkspace({
   initialPage,
+  themeOptions,
   canCreate,
   canUpdate,
 }: FeedbackWorkspaceProps) {
   const [page, setPage] = useState(initialPage);
-  const [searchValue, setSearchValue] = useState(initialPage.query.search);
-  const [activeSearch, setActiveSearch] = useState(initialPage.query.search);
+  const [draftQuery, setDraftQuery] = useState<FeedbackQueryState>(initialPage.query);
   const [ingestionMode, setIngestionMode] = useState<IngestionMode>("single");
   const [isLoading, setIsLoading] = useState(false);
   const [updatingFeedbackId, setUpdatingFeedbackId] = useState<string | null>(null);
@@ -59,25 +117,17 @@ export function FeedbackWorkspace({
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  async function loadPage(nextPage: number, search = activeSearch) {
+  async function loadPage(nextPage: number, requestedQuery = page.query) {
     const safePage = Math.max(1, nextPage);
-    const normalizedSearch = search.trim().replace(/\s+/g, " ");
-    const query = new URLSearchParams({
-      page: String(safePage),
-      pageSize: String(PAGE_SIZE),
-      sortOrder: "desc",
-    });
-
-    if (normalizedSearch) {
-      query.set("search", normalizedSearch);
-    }
+    const normalizedQuery = normalizeFeedbackQuery(requestedQuery);
+    const queryString = buildFeedbackQueryString(safePage, normalizedQuery);
 
     setIsLoading(true);
     setLoadError(null);
     setActionError(null);
 
     try {
-      const response = await fetch(`/api/feedback?${query.toString()}`, {
+      const response = await fetch(`/api/feedback?${queryString.toString()}`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -97,8 +147,8 @@ export function FeedbackWorkspace({
       }
 
       setPage(result.data);
-      setActiveSearch(result.data.query.search);
-      updateInboxUrl(result.data.pagination.page, result.data.query.search);
+      setDraftQuery(result.data.query);
+      updateInboxUrl(result.data.pagination.page, result.data.query);
     } catch {
       setLoadError("Feedback is temporarily unavailable. Please try again.");
     } finally {
@@ -107,9 +157,9 @@ export function FeedbackWorkspace({
   }
 
   async function resetInboxAfterIngestion() {
-    setSearchValue("");
-    setActiveSearch("");
-    await loadPage(1, "");
+    const clearedQuery = emptyFeedbackQuery();
+    setDraftQuery(clearedQuery);
+    await loadPage(1, clearedQuery);
   }
 
   async function handleCreated(feedback: FeedbackListItem) {
@@ -164,18 +214,22 @@ export function FeedbackWorkspace({
         return;
       }
 
-      setPage((currentPage) => ({
-        ...currentPage,
-        items: currentPage.items.map((item) =>
-          item.id === result.data.feedback.id ? result.data.feedback : item,
-        ),
-      }));
-
       setNotice(
         result.data.changed
           ? `Feedback moved from ${result.data.previousStatus} to ${result.data.feedback.status}.`
           : `Feedback is already ${result.data.feedback.status}.`,
       );
+
+      if (result.data.changed) {
+        await loadPage(page.pagination.page, page.query);
+      } else {
+        setPage((currentPage) => ({
+          ...currentPage,
+          items: currentPage.items.map((item) =>
+            item.id === result.data.feedback.id ? result.data.feedback : item,
+          ),
+        }));
+      }
     } catch {
       setActionError("The feedback status is temporarily unavailable. Please try again.");
     } finally {
@@ -274,9 +328,9 @@ export function FeedbackWorkspace({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <p className="font-bold text-slate-900">Read-only workspace access</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Viewers can read and search workspace feedback but cannot create entries, upload CSV
-                files, pull simulated records, or change workflow status. Every mutation API enforces
-                this restriction with HTTP 403.
+                Viewers can read, search, and filter workspace feedback but cannot create entries,
+                upload CSV files, pull simulated records, or change workflow status. Every mutation
+                API enforces this restriction with HTTP 403.
               </p>
             </div>
           )}
@@ -289,7 +343,7 @@ export function FeedbackWorkspace({
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-loop-600">
               Feedback inbox
             </p>
-            <h2 className="mt-2 text-2xl font-black text-loop-900">Search and triage</h2>
+            <h2 className="mt-2 text-2xl font-black text-loop-900">Search, filter, and triage</h2>
           </div>
           <span className="w-fit rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800 ring-1 ring-inset ring-violet-200">
             Server-side results
@@ -297,19 +351,21 @@ export function FeedbackWorkspace({
         </div>
 
         <FeedbackInboxToolbar
-          searchValue={searchValue}
-          activeSearch={activeSearch}
+          queryValue={draftQuery}
+          activeQuery={page.query}
+          themeOptions={themeOptions}
           totalItems={page.pagination.totalItems}
           isLoading={isLoading}
-          onSearchValueChange={setSearchValue}
-          onSubmit={(search) => {
+          onQueryChange={setDraftQuery}
+          onApply={(query) => {
             setNotice(null);
-            void loadPage(1, search);
+            void loadPage(1, query);
           }}
           onClear={() => {
-            setSearchValue("");
+            const clearedQuery = emptyFeedbackQuery();
+            setDraftQuery(clearedQuery);
             setNotice(null);
-            void loadPage(1, "");
+            void loadPage(1, clearedQuery);
           }}
         />
 
@@ -340,12 +396,12 @@ export function FeedbackWorkspace({
           error={loadError}
           onPageChange={(nextPage) => {
             setNotice(null);
-            void loadPage(nextPage);
+            void loadPage(nextPage, page.query);
           }}
           onStatusChange={(feedbackId, status) => {
             void handleStatusChange(feedbackId, status);
           }}
-          onRetry={() => void loadPage(page.pagination.page)}
+          onRetry={() => void loadPage(page.pagination.page, page.query)}
         />
       </section>
     </div>
