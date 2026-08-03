@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
             Authentication, workspace isolation, three ingestion paths, server-side search, pagination,
-            and the feedback status workflow are now connected inside {user.workspace.name}.
+            compound inbox filters, and the feedback status workflow are now connected inside {user.workspace.name}.
           </p>
         </div>
 
@@ -62,8 +62,8 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
             {canCreateFeedback
-              ? "Create records through three ingestion paths, search customer language, and move feedback through the triage workflow."
-              : "Search and paginate tenant-scoped feedback with read-only viewer access."}
+              ? "Create records through three ingestion paths, combine search with five filter dimensions, and move feedback through the triage workflow."
+              : "Search, filter, and paginate tenant-scoped feedback with read-only viewer access."}
           </p>
           <Link
             href="/inbox"
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
         </h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-amber-900 dark:text-amber-200">
           The feedback APIs never accept an authoritative workspace identifier from the browser. They
-          derive the workspace from the active database user and scope every ingestion, search,
+          derive the workspace from the active database user and scope every ingestion, search, filter,
           pagination, lookup, and status mutation to that tenant.
         </p>
       </section>

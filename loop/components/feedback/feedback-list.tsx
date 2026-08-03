@@ -1,8 +1,13 @@
 "use client";
 
 import { getFeedbackChannelLabel } from "@/lib/feedback-catalog";
+import {
+  getFeedbackSentimentLabel,
+  getFeedbackStatusLabel,
+} from "@/lib/feedback-filter-catalog";
 import type {
   FeedbackPage,
+  FeedbackSentimentValue,
   FeedbackStatusValue,
 } from "@/types/feedback";
 
@@ -70,14 +75,14 @@ function workflowClassName(status: FeedbackStatusValue): string {
   }
 }
 
-function workflowLabel(status: FeedbackStatusValue): string {
-  switch (status) {
-    case "NEW":
-      return "New";
-    case "REVIEWED":
-      return "Reviewed";
-    case "ACTIONED":
-      return "Actioned";
+function sentimentClassName(sentiment: FeedbackSentimentValue): string {
+  switch (sentiment) {
+    case "POS":
+      return "bg-emerald-50 text-emerald-800 ring-emerald-200";
+    case "NEU":
+      return "bg-slate-100 text-slate-700 ring-slate-200";
+    case "NEG":
+      return "bg-red-50 text-red-800 ring-red-200";
   }
 }
 
@@ -99,6 +104,20 @@ function nextWorkflowAction(status: FeedbackStatusValue): {
     case "ACTIONED":
       return null;
   }
+}
+
+function hasActiveCriteria(page: FeedbackPage): boolean {
+  const query = page.query;
+
+  return Boolean(
+    query.search ||
+      query.channel ||
+      query.sentiment ||
+      query.themeId ||
+      query.status ||
+      query.dateFrom ||
+      query.dateTo,
+  );
 }
 
 export function FeedbackList({
@@ -128,7 +147,7 @@ export function FeedbackList({
   }
 
   if (page.items.length === 0) {
-    const hasSearch = page.query.search.length > 0;
+    const hasCriteria = hasActiveCriteria(page);
 
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
@@ -136,14 +155,14 @@ export function FeedbackList({
           aria-hidden="true"
           className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-xl shadow-sm"
         >
-          {hasSearch ? "⌕" : "✦"}
+          {hasCriteria ? "⌕" : "✦"}
         </span>
         <h3 className="mt-5 text-lg font-black text-slate-900">
-          {hasSearch ? "No matching feedback" : "No feedback yet"}
+          {hasCriteria ? "No matching feedback" : "No feedback yet"}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-          {hasSearch
-            ? `No feedback content matches “${page.query.search}”. Try different customer wording or clear the search.`
+          {hasCriteria
+            ? "No feedback matches the active search and filter combination. Clear or broaden one criterion and try again."
             : "Add the first customer comment to begin building the workspace feedback record."}
         </p>
       </div>
@@ -184,6 +203,15 @@ export function FeedbackList({
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
                       {getFeedbackChannelLabel(feedback.channel)}
                     </span>
+                    {feedback.sentiment ? (
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset ${sentimentClassName(
+                          feedback.sentiment,
+                        )}`}
+                      >
+                        {getFeedbackSentimentLabel(feedback.sentiment)}
+                      </span>
+                    ) : null}
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset ${classificationClassName(
                         feedback.classificationStatus,
@@ -196,13 +224,32 @@ export function FeedbackList({
                         feedback.status,
                       )}`}
                     >
-                      {workflowLabel(feedback.status)}
+                      {getFeedbackStatusLabel(feedback.status)}
                     </span>
                   </div>
 
                   <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-slate-800">
                     {feedback.content}
                   </p>
+
+                  {feedback.themes.length > 0 ? (
+                    <ul className="mt-4 flex flex-wrap gap-2" aria-label="Assigned feedback themes">
+                      {feedback.themes.map((theme) => (
+                        <li
+                          key={theme.id}
+                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200"
+                          title={`${Math.round(theme.confidence * 100)}% confidence`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: theme.color }}
+                          />
+                          {theme.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
 
                 <time
