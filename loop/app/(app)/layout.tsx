@@ -11,7 +11,7 @@ export default async function ProtectedAppLayout({
   const user = await requireCurrentUser();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 ">
       <AppHeader user={user} />
       {children}
     </div>

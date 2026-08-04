@@ -89,7 +89,7 @@ export default async function ProfilePage() {
           <p className="text-xs font-bold uppercase tracking-wide text-loop-700">
             What your role can do
           </p>
-          <p className="mt-1 text-sm leading-6 text-loop-900">
+          <p className="mt-1  text-sm leading-6 text-loop-900">
             {getRoleSummary(user.role)}
           </p>
         </div>

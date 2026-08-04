@@ -12,8 +12,12 @@ export default async function HomePage() {
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-loop-900 text-lg font-bold text-white">
               L
             </div>
@@ -27,6 +31,7 @@ export default async function HomePage() {
               </p>
             </div>
           </Link>
+
 
           {/* Navigation */}
           <nav className="hidden items-center gap-6 md:flex">
@@ -44,6 +49,7 @@ export default async function HomePage() {
               About
             </Link>
 
+
             {session?.user && (
               <Link
                 href="/dashboard"
@@ -54,19 +60,18 @@ export default async function HomePage() {
             )}
           </nav>
 
-          {/* Right Side */}
+
+          {/* Actions */}
           <div className="flex items-center gap-3">
             {session?.user ? (
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-loop-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-800"
+                className="rounded-lg bg-loop-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-loop-800"
               >
                 Dashboard
               </Link>
             ) : (
               <>
-              
-
                 <Link
                   href="/login"
                   className="text-sm font-medium text-slate-700 hover:text-loop-900"
@@ -76,17 +81,19 @@ export default async function HomePage() {
 
                 <Link
                   href="/signup"
-                  className="rounded-lg bg-loop-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-800"
+                  className="rounded-lg bg-loop-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-loop-800"
                 >
                   Sign Up
                 </Link>
               </>
             )}
+
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
+
+      {/* Hero */}
       <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-7xl flex-col items-center justify-center px-6 text-center">
         <h1 className="text-5xl font-extrabold text-loop-900 sm:text-6xl">
           Project LOOP
@@ -97,13 +104,16 @@ export default async function HomePage() {
           collect, manage, and analyze customer feedback in one place.
         </p>
 
-        <div className="mt-10 flex gap-4">
+
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
+
           <Link
             href={session?.user ? "/dashboard" : "/signup"}
-            className="rounded-lg bg-loop-900 px-6 py-3 font-semibold text-white hover:bg-loop-800"
+            className="rounded-lg bg-loop-900 px-6 py-3 font-semibold text-white transition hover:bg-loop-800"
           >
             {session?.user ? "Go to Dashboard" : "Get Started"}
           </Link>
+
 
           <Link
             href="/about"
@@ -111,8 +121,11 @@ export default async function HomePage() {
           >
             Learn More
           </Link>
+
         </div>
+
       </section>
+
     </main>
   );
 }
