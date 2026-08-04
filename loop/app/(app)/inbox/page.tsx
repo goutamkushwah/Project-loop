@@ -30,42 +30,30 @@ type InboxPageProps = {
   }>;
 };
 
-function firstSearchParam(
-  value: string | string[] | undefined
-): string | undefined {
+function firstSearchParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export default async function InboxPage({
-  searchParams,
-}: InboxPageProps) {
-  const params = await searchParams;
-
+export default async function InboxPage({ searchParams }: InboxPageProps) {
   const user = await requirePagePermission(PERMISSIONS.FEEDBACK_READ);
 
-  const canCreate = hasPermission(
-    user.role,
-    PERMISSIONS.FEEDBACK_CREATE
-  );
+  const canCreate = hasPermission(user.role, PERMISSIONS.FEEDBACK_CREATE);
+  const canUpdate = hasPermission(user.role, PERMISSIONS.FEEDBACK_UPDATE);
 
-  const canUpdate = hasPermission(
-    user.role,
-    PERMISSIONS.FEEDBACK_UPDATE
-  );
+  const params = await searchParams;
 
   const parsedQuery = feedbackListQuerySchema.safeParse({
-    page: firstSearchParam(params.page),
+    page: firstSearchParam(params?.page),
     pageSize: 10,
-    search: firstSearchParam(params.search) ?? "",
-    channel: firstSearchParam(params.channel),
-    sentiment: firstSearchParam(params.sentiment),
-    themeId: firstSearchParam(params.themeId),
-    status: firstSearchParam(params.status),
-    dateFrom: firstSearchParam(params.dateFrom),
-    dateTo: firstSearchParam(params.dateTo),
+    search: firstSearchParam(params?.search) ?? "",
+    channel: firstSearchParam(params?.channel),
+    sentiment: firstSearchParam(params?.sentiment),
+    themeId: firstSearchParam(params?.themeId),
+    status: firstSearchParam(params?.status),
+    dateFrom: firstSearchParam(params?.dateFrom),
+    dateTo: firstSearchParam(params?.dateTo),
     sortOrder: "desc",
   });
-
   const query = parsedQuery.success
     ? parsedQuery.data
     : {
@@ -80,7 +68,6 @@ export default async function InboxPage({
         dateTo: undefined,
         sortOrder: "desc" as const,
       };
-
   const [initialPage, themeOptions] = await Promise.all([
     listWorkspaceFeedback(user.workspaceId, query),
     listWorkspaceThemeOptions(user.workspaceId),
@@ -88,27 +75,18 @@ export default async function InboxPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-
-      <div className="mb-8 border-b border-slate-200 pb-8 ">
-
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600 ">
+      <div className="mb-8 border-b border-slate-200 pb-8">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
           Core application · Day 9
         </p>
-
-        <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900 ">
+        <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
           Feedback inbox
         </h1>
-
-        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600 f">
-          Combine full-text search with channel, sentiment, theme,
-          workflow-status, and UTC date-range filters. Every count and page
-          remains isolated to the authenticated{" "}
-          <span className="font-semibold">
-            {user.workspace.name}
-          </span>{" "}
+        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+          Combine full-text search with channel, sentiment, theme, workflow-status, and UTC date-range
+          filters. Every count and page remains isolated to the authenticated {user.workspace.name}
           workspace.
         </p>
-
       </div>
 
       <FeedbackWorkspace
@@ -117,7 +95,6 @@ export default async function InboxPage({
         canCreate={canCreate}
         canUpdate={canUpdate}
       />
-
     </main>
   );
 }

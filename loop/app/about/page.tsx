@@ -47,12 +47,7 @@ export default async function AboutPage() {
               Dashboard
             </Link>
 
-            <Link
-              href="/profile"
-              className="text-sm font-medium text-slate-700 hover:text-loop-900"
-            >
-              Profile
-            </Link>
+           
 
             <Link
               href="/about"
