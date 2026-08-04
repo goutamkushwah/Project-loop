@@ -58,6 +58,18 @@ export function AppHeader({ user }: AppHeaderProps) {
         <div className="flex min-w-0 items-center justify-between gap-4">
           <nav className="flex flex-wrap items-center gap-1" aria-label="Workspace navigation">
             <Link
+                          href="/"
+                          className="text-sm font-medium text-slate-700 hover:text-loop-900"
+                        >
+                          Home
+                        </Link>
+                        <Link
+                                      href="/about"
+                                      className="text-sm font-medium text-slate-700 hover:text-loop-900"
+                                    >
+                                      About
+                                    </Link>
+            <Link
               href="/dashboard"
               className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
             >
