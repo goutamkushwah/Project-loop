@@ -237,6 +237,42 @@ export function FeedbackWorkspace({
     }
   }
 
+  async function handleClassify(feedbackId: string) {
+    setUpdatingFeedbackId(feedbackId);
+    setActionError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/feedback/${feedbackId}/classify`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = (await response.json()) as
+        | ApiSuccessResponse<{ feedbackId: string; status: string }>
+        | ApiErrorResponse;
+
+      if (!response.ok || !result.success) {
+        setActionError(
+          !result.success
+            ? result.error.message
+            : "Feedback could not be classified right now.",
+        );
+        return;
+      }
+
+      setNotice("Feedback classified with Claude.");
+      await loadPage(page.pagination.page, page.query);
+    } catch {
+      setActionError("Classification is temporarily unavailable. Please try again.");
+    } finally {
+      setUpdatingFeedbackId(null);
+    }
+  }
+
   const ingestionHeading =
     ingestionMode === "single"
       ? "Add customer feedback"
@@ -400,6 +436,9 @@ export function FeedbackWorkspace({
           }}
           onStatusChange={(feedbackId, status) => {
             void handleStatusChange(feedbackId, status);
+          }}
+          onClassify={(feedbackId) => {
+            void handleClassify(feedbackId);
           }}
           onRetry={() => void loadPage(page.pagination.page, page.query)}
         />
