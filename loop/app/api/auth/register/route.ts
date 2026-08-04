@@ -1,168 +1,56 @@
-import { Prisma, UserRole } from "@prisma/client";
+import { z } from "zod";
 
-import { apiError, apiSuccess } from "@/lib/api-response";
-import { registrationSchema } from "@/lib/auth-validation";
-import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/password";
-import { isTrustedMutationRequest } from "@/lib/request-security";
-import { createWorkspaceSlug } from "@/lib/slug";
+const normalizeSpaces = (value: string): string => value.replace(/\s+/g, " ").trim();
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("Enter a valid email address.")
+  .max(254, "Email address is too long.");
 
-const MAX_REQUEST_BYTES = 16 * 1024;
-const MAX_SLUG_ATTEMPTS = 3;
+const displayNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Name must contain at least 2 characters.")
+  .max(120, "Name must contain at most 120 characters.")
+  .transform(normalizeSpaces);
 
-// Roles a brand-new workspace creator is allowed to self-assign at signup.
-// ADMIN is intentionally excluded here — it is never accepted from the
-// request body, even if the Zod schema is loosened later. This prevents
-// privilege escalation via a direct POST to this endpoint.
-const SELF_ASSIGNABLE_SIGNUP_ROLES: ReadonlySet<UserRole> = new Set([
-  UserRole.ANALYST,
-  UserRole.VIEWER,
-]);
+const workspaceNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Workspace name must contain at least 2 characters.")
+  .max(120, "Workspace name must contain at most 120 characters.")
+  .transform(normalizeSpaces);
 
-export async function POST(request: Request) {
-  if (!isTrustedMutationRequest(request)) {
-    return apiError(
-      "CROSS_SITE_REQUEST_BLOCKED",
-      "The cross-site registration request was blocked.",
-      403,
-    );
-  }
+export const passwordSchema = z
+  .string()
+  .min(12, "Password must contain at least 12 characters.")
+  .max(128, "Password must contain at most 128 characters.")
+  .regex(/[a-z]/, "Password must include a lowercase letter.")
+  .regex(/[A-Z]/, "Password must include an uppercase letter.")
+  .regex(/[0-9]/, "Password must include a number.")
+  .regex(/[^A-Za-z0-9]/, "Password must include a symbol.");
 
-  const contentType = request.headers.get("content-type") ?? "";
+export const signupRoleSchema = z.enum(["ANALYST", "VIEWER"], {
+  errorMap: () => ({ message: "Select whether you're an analyst or viewer." }),
+});
 
-  if (!contentType.toLowerCase().includes("application/json")) {
-    return apiError(
-      "INVALID_CONTENT_TYPE",
-      "Content-Type must be application/json.",
-      415,
-    );
-  }
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(1, "Password is required.")
+    .max(128, "Password must contain at most 128 characters."),
+});
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
+export const registrationSchema = z.object({
+  name: displayNameSchema,
+  workspaceName: workspaceNameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+  role: signupRoleSchema,   // <-- this line is the one that's missing
+});
 
-  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
-    return apiError("PAYLOAD_TOO_LARGE", "Registration payload is too large.", 413);
-  }
-
-  let payload: unknown;
-
-  try {
-    payload = await request.json();
-  } catch {
-    return apiError("INVALID_JSON", "Request body must contain valid JSON.", 400);
-  }
-
-  const parsedRegistration = registrationSchema.safeParse(payload);
-
-  if (!parsedRegistration.success) {
-    return apiError(
-      "VALIDATION_ERROR",
-      "Review the highlighted registration fields.",
-      422,
-      parsedRegistration.error.flatten().fieldErrors,
-    );
-  }
-
-  const { name, workspaceName, email, password, role } = parsedRegistration.data;
-  const passwordHash = await hashPassword(password);
-
-  // Defense in depth: even though registrationSchema should already restrict
-  // the role enum, re-validate against the signup whitelist here so this
-  // route can never create an ADMIN (or any future privileged role) from
-  // user-supplied input.
-  const assignedRole = SELF_ASSIGNABLE_SIGNUP_ROLES.has(role) ? role : UserRole.VIEWER;
-
-  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
-    try {
-      const workspace = await db.workspace.create({
-        data: {
-          name: workspaceName,
-          slug: createWorkspaceSlug(workspaceName),
-          users: {
-            create: {
-              name,
-              email,
-              passwordHash,
-              role: assignedRole,
-              isActive: true,
-            },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          users: {
-            take: 1,
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
-        },
-      });
-
-      const createdUser = workspace.users[0];
-
-      if (!createdUser) {
-        return apiError(
-          "REGISTRATION_FAILED",
-          "The account could not be created. Please try again.",
-          500,
-        );
-      }
-
-      return apiSuccess(
-        {
-          user: createdUser,
-          workspace: {
-            id: workspace.id,
-            name: workspace.name,
-            slug: workspace.slug,
-          },
-        },
-        201,
-      );
-    } catch (error: unknown) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        const target = Array.isArray(error.meta?.target)
-          ? error.meta.target.map(String)
-          : [String(error.meta?.target ?? "")];
-
-        if (target.some((field) => field.includes("email"))) {
-          return apiError(
-            "EMAIL_ALREADY_EXISTS",
-            "An account already exists for this email address.",
-            409,
-            {
-              email: ["An account already exists for this email address."],
-            },
-          );
-        }
-
-        if (target.some((field) => field.includes("slug")) && attempt < MAX_SLUG_ATTEMPTS - 1) {
-          continue;
-        }
-      }
-
-      console.error("Registration failed.", error);
-
-      return apiError(
-        "REGISTRATION_FAILED",
-        "The account could not be created. Please try again.",
-        500,
-      );
-    }
-  }
-
-  return apiError(
-    "REGISTRATION_FAILED",
-    "The workspace could not be created. Please try again.",
-    500,
-  );
-}
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RegistrationInput = z.infer<typeof registrationSchema>;
