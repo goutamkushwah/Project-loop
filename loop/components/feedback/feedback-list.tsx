@@ -19,6 +19,7 @@ type FeedbackListProps = {
   error: string | null;
   onPageChange: (page: number) => void;
   onStatusChange: (feedbackId: string, status: "REVIEWED" | "ACTIONED") => void;
+  onClassify: (feedbackId: string) => void;
   onRetry: () => void;
 };
 
@@ -128,6 +129,7 @@ export function FeedbackList({
   error,
   onPageChange,
   onStatusChange,
+  onClassify,
   onRetry,
 }: FeedbackListProps) {
   if (error) {
@@ -290,20 +292,36 @@ export function FeedbackList({
                   Workflow: New → Reviewed → Actioned
                 </p>
 
-                {canUpdate && nextAction ? (
-                  <button
-                    type="button"
-                    onClick={() => onStatusChange(feedback.id, nextAction.target)}
-                    disabled={isLoading || isUpdating || updatingFeedbackId !== null}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isUpdating ? "Updating…" : nextAction.label}
-                  </button>
-                ) : feedback.status === "ACTIONED" ? (
-                  <span className="text-xs font-bold text-emerald-700">Workflow complete</span>
-                ) : (
-                  <span className="text-xs font-medium text-slate-500">Read-only status</span>
-                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  {canUpdate &&
+                  (feedback.classificationStatus === "PENDING" ||
+                    feedback.classificationStatus === "FAILED" ||
+                    feedback.classificationStatus === "REVIEW_REQUIRED") ? (
+                    <button
+                      type="button"
+                      onClick={() => onClassify(feedback.id)}
+                      disabled={isLoading || isUpdating || updatingFeedbackId !== null}
+                      className="rounded-xl border border-loop-300 bg-loop-50 px-4 py-2 text-sm font-bold text-loop-800 transition hover:bg-loop-100 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isUpdating ? "Classifying…" : "Classify with AI"}
+                    </button>
+                  ) : null}
+
+                  {canUpdate && nextAction ? (
+                    <button
+                      type="button"
+                      onClick={() => onStatusChange(feedback.id, nextAction.target)}
+                      disabled={isLoading || isUpdating || updatingFeedbackId !== null}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isUpdating ? "Updating…" : nextAction.label}
+                    </button>
+                  ) : feedback.status === "ACTIONED" ? (
+                    <span className="text-xs font-bold text-emerald-700">Workflow complete</span>
+                  ) : (
+                    <span className="text-xs font-medium text-slate-500">Read-only status</span>
+                  )}
+                </div>
               </div>
             </li>
           );

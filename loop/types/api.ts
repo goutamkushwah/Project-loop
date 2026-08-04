@@ -39,6 +39,7 @@ export type ApiErrorCode =
   | "CSV_IMPORT_FAILED"
   | "SIMULATED_CHANNEL_IMPORT_FAILED"
   | "DASHBOARD_ANALYTICS_FAILED"
+  | "CLASSIFICATION_FAILED"
   | "INTERNAL_SERVER_ERROR";
 
 export type ApiErrorResponse = {
