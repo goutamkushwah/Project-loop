@@ -5,14 +5,8 @@ export default withAuth({
     signIn: "/login",
   },
   callbacks: {
-    authorized: ({ token }) => {
-      return Boolean(
-        token?.userId &&
-        token?.workspaceId &&
-        token?.role &&
-        token?.workspaceName
-      );
-    },
+    authorized: ({ token }) =>
+      Boolean(token?.userId && token.workspaceId && token.role && token.workspaceName),
   },
 });
 
@@ -20,6 +14,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/inbox/:path*",
+    "/ai/:path*",
     "/trends/:path*",
     "/ask/:path*",
     "/reports/:path*",
