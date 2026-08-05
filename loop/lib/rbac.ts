@@ -5,6 +5,7 @@ export const PERMISSIONS = {
   FEEDBACK_READ: "feedback.read",
   FEEDBACK_CREATE: "feedback.create",
   FEEDBACK_UPDATE: "feedback.update",
+  AI_CLASSIFY: "ai.classify",
   MEMBERS_READ: "members.read",
   MEMBERS_MANAGE: "members.manage",
   REPORTS_READ: "reports.read",
@@ -20,6 +21,7 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.FEEDBACK_READ,
     PERMISSIONS.FEEDBACK_CREATE,
     PERMISSIONS.FEEDBACK_UPDATE,
+    PERMISSIONS.AI_CLASSIFY,
     PERMISSIONS.MEMBERS_READ,
     PERMISSIONS.MEMBERS_MANAGE,
     PERMISSIONS.REPORTS_READ,
@@ -31,6 +33,7 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.FEEDBACK_READ,
     PERMISSIONS.FEEDBACK_CREATE,
     PERMISSIONS.FEEDBACK_UPDATE,
+    PERMISSIONS.AI_CLASSIFY,
     PERMISSIONS.REPORTS_READ,
     PERMISSIONS.REPORTS_CREATE,
   ]),
@@ -52,7 +55,7 @@ export function getRolePermissions(role: UserRole): readonly Permission[] {
 export function getRoleSummary(role: UserRole): string {
   switch (role) {
     case "ADMIN":
-      return "Full workspace administration, member management, feedback operations, and reporting.";
+      return "Full workspace administration, member management, feedback operations, AI classification, and reporting.";
     case "ANALYST":
       return "Can ingest, classify, triage, analyse, and report on workspace feedback.";
     case "VIEWER":
