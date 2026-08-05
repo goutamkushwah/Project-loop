@@ -32,10 +32,6 @@ export const passwordSchema = z
   .regex(/[0-9]/, "Password must include a number.")
   .regex(/[^A-Za-z0-9]/, "Password must include a symbol.");
 
-export const signupRoleSchema = z.enum(["ANALYST", "VIEWER"], {
-  errorMap: () => ({ message: "Select whether you're an analyst or viewer." }),
-});
-
 export const loginSchema = z.object({
   email: emailSchema,
   password: z
@@ -49,7 +45,6 @@ export const registrationSchema = z.object({
   workspaceName: workspaceNameSchema,
   email: emailSchema,
   password: passwordSchema,
-  role: signupRoleSchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

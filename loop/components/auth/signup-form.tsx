@@ -12,14 +12,12 @@ type SignupFormProps = {
   callbackUrl: string;
 };
 
-type SignupRole = "ANALYST" | "VIEWER";
-
 type RegistrationData = {
   user: {
     id: string;
     name: string;
     email: string;
-    role: SignupRole;
+    role: "ADMIN";
   };
   workspace: {
     id: string;
@@ -28,29 +26,11 @@ type RegistrationData = {
   };
 };
 
-const ROLE_OPTIONS: Array<{
-  value: SignupRole;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "ANALYST",
-    label: "Analyst",
-    description: ".",
-  },
-  {
-    value: "VIEWER",
-    label: "Viewer",
-    description: "",
-  },
-];
-
 export function SignupForm({ callbackUrl }: SignupFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ApiFieldErrors>({});
-  const [role, setRole] = useState<SignupRole>("ANALYST");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,7 +64,6 @@ export function SignupForm({ callbackUrl }: SignupFormProps) {
           workspaceName,
           email,
           password,
-          role,
         }),
       });
 
@@ -188,46 +167,6 @@ export function SignupForm({ callbackUrl }: SignupFormProps) {
           </p>
         ) : null}
       </div>
-
-      <fieldset disabled={isSubmitting}>
-        <legend className="block text-sm font-semibold text-slate-800">
-          How will you use LOOP?
-        </legend>
-        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {ROLE_OPTIONS.map((option) => {
-            const isSelected = role === option.value;
-            return (
-              <label
-                key={option.value}
-                htmlFor={`role-${option.value}`}
-                className={`relative flex cursor-pointer flex-col rounded-xl border px-4 py-3 text-left transition focus-within:ring-4 focus-within:ring-loop-100 ${
-                  isSelected
-                    ? "border-loop-500 bg-loop-50 ring-2 ring-loop-500"
-                    : "border-slate-300 bg-white hover:border-loop-300"
-                } ${isSubmitting ? "cursor-not-allowed opacity-60" : ""}`}
-              >
-                <input
-                  id={`role-${option.value}`}
-                  name="role"
-                  type="radio"
-                  value={option.value}
-                  checked={isSelected}
-                  onChange={() => setRole(option.value)}
-                  disabled={isSubmitting}
-                  className="sr-only"
-                />
-                <span className="text-sm font-bold text-slate-900">{option.label}</span>
-                <span className="mt-1 text-xs leading-5 text-slate-600">
-                  {option.description}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-        {firstError("role") ? (
-          <p className="mt-2 text-sm font-medium text-red-700">{firstError("role")}</p>
-        ) : null}
-      </fieldset>
 
       <div>
         <label htmlFor="email" className="block text-sm font-semibold text-slate-800">

@@ -13,15 +13,6 @@ export const runtime = "nodejs";
 const MAX_REQUEST_BYTES = 16 * 1024;
 const MAX_SLUG_ATTEMPTS = 3;
 
-// Roles a brand-new workspace creator is allowed to self-assign at signup.
-// ADMIN is intentionally excluded here — it is never accepted from the
-// request body, even if the Zod schema is loosened later. This prevents
-// privilege escalation via a direct POST to this endpoint.
-const SELF_ASSIGNABLE_SIGNUP_ROLES: ReadonlySet<UserRole> = new Set([
-  UserRole.ANALYST,
-  UserRole.VIEWER,
-]);
-
 export async function POST(request: Request) {
   if (!isTrustedMutationRequest(request)) {
     return apiError(
@@ -66,14 +57,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, workspaceName, email, password, role } = parsedRegistration.data;
+  const { name, workspaceName, email, password } = parsedRegistration.data;
   const passwordHash = await hashPassword(password);
-
-  // Defense in depth: even though registrationSchema should already restrict
-  // the role enum, re-validate against the signup whitelist here so this
-  // route can never create an ADMIN (or any future privileged role) from
-  // user-supplied input.
-  const assignedRole = SELF_ASSIGNABLE_SIGNUP_ROLES.has(role) ? role : UserRole.VIEWER;
 
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
     try {
@@ -86,7 +71,7 @@ export async function POST(request: Request) {
               name,
               email,
               passwordHash,
-              role: assignedRole,
+              role: UserRole.ADMIN,
               isActive: true,
             },
           },
