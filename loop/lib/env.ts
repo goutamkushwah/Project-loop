@@ -22,7 +22,7 @@ const serverEnvironmentSchema = z.object({
     .min(32, "NEXTAUTH_SECRET must contain at least 32 characters."),
   ANTHROPIC_API_KEY: z.preprocess(
     emptyStringToUndefined,
-    z.string().trim().min(20, "ANTHROPIC_API_KEY appears to be invalid.").optional(),
+    z.string().min(1, "ANTHROPIC_API_KEY cannot be empty.").optional(),
   ),
 });
 
