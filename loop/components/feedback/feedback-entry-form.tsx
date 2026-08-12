@@ -205,8 +205,8 @@ export function FeedbackEntryForm({ onCreated }: FeedbackEntryFormProps) {
       </div>
 
       <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-900">
-        New items are saved with a <strong>PENDING</strong> classification state. Claude processing is
-        added during the AI-integration sprint; no AI call is made today.
+        New items are saved with a <strong>PENDING</strong> classification state until automated
+        classification is applied server-side.
       </div>
 
       <button
