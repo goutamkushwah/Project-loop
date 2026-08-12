@@ -1,0 +1,85 @@
+import { z } from "zod";
+
+/**
+ * ---------------------------------------------------------------
+ * AI1 — Auto-classification output schema
+ * Claude ko yeh exact JSON shape return karna hoga (Section 09.1)
+ * ---------------------------------------------------------------
+ */
+export const ClassificationSchema = z.object({
+    sentiment: z.enum(["POS", "NEU", "NEG"]),
+    sentimentScore: z.number().min(-1).max(1),
+    themes: z
+        .array(z.string().min(1))
+        .min(1, "At least one theme is required")
+        .max(5, "Max 5 themes per item"),
+    featureArea: z.string().min(1),
+    rationale: z.string().min(1).max(300),
+});
+
+export type Classification = z.infer<typeof ClassificationSchema>;
+
+/**
+ * Request body jab feedback ingest hota hai aur classify karna hota hai
+ */
+export const ClassifyRequestSchema = z.object({
+    feedbackId: z.string().cuid(),
+    content: z.string().min(1),
+    existingThemeNames: z.array(z.string()).default([]),
+});
+
+export type ClassifyRequest = z.infer<typeof ClassifyRequestSchema>;
+
+/**
+ * ---------------------------------------------------------------
+ * AI3 — Ask LOOP grounded Q&A schema
+ * ---------------------------------------------------------------
+ */
+export const AskLoopRequestSchema = z.object({
+    question: z.string().min(3, "Question is too short"),
+    workspaceId: z.string().cuid(),
+    topK: z.number().int().min(1).max(20).default(8),
+});
+
+export type AskLoopRequest = z.infer<typeof AskLoopRequestSchema>;
+
+export const AskLoopResponseSchema = z.object({
+    answer: z.string().min(1),
+    groundedInData: z.boolean(),
+    citedFeedbackIds: z.array(z.string().cuid()),
+});
+
+export type AskLoopResponse = z.infer<typeof AskLoopResponseSchema>;
+
+/**
+ * ---------------------------------------------------------------
+ * AI4 — Voice-of-Customer report schema
+ * ---------------------------------------------------------------
+ */
+export const VoCReportSchema = z.object({
+    title: z.string().min(1),
+    periodStart: z.string().datetime(),
+    periodEnd: z.string().datetime(),
+    topThemes: z.array(
+        z.object({
+            name: z.string(),
+            count: z.number().int().nonnegative(),
+            trend: z.enum(["UP", "DOWN", "FLAT"]),
+        })
+    ),
+    sentimentShift: z.object({
+        positivePct: z.number().min(0).max(100),
+        negativePct: z.number().min(0).max(100),
+        neutralPct: z.number().min(0).max(100),
+        deltaVsPreviousPeriod: z.number(),
+    }),
+    notableQuotes: z.array(
+        z.object({
+            feedbackId: z.string().cuid(),
+            quote: z.string(),
+        })
+    ),
+    recommendedActions: z.array(z.string()).min(1),
+});
+
+export type VoCReport = z.infer<typeof VoCReportSchema>;
