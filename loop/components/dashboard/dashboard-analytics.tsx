@@ -208,7 +208,7 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
             <div className="mt-5">
               <ChartEmptyState
                 title="No classified sentiment yet"
-                description="The chart will populate from stored Claude classification results during the AI sprint."
+                description="The chart will populate as validated Gemini classification results are stored."
               />
             </div>
           )}
