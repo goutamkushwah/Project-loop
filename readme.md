@@ -4,7 +4,7 @@
 
 Project LOOP is a corporate-grade, AI-powered Customer Feedback Intelligence Platform built as part of the **Zidio Development Internship — Web Development Track**. It helps businesses collect, organize, analyze, and understand customer feedback from multiple sources in one centralized dashboard.
 
-Instead of manually reading hundreds of customer reviews, support tickets, survey responses, and feedback comments, Project LOOP uses Artificial Intelligence (powered by the Anthropic Claude API) to automatically classify sentiment, cluster feedback into themes, detect emerging trends, answer plain-English questions grounded in real data, and generate boardroom-ready reports.
+Instead of manually reading hundreds of customer reviews, support tickets, survey responses, and feedback comments, Project LOOP uses Artificial Intelligence (powered by the Google Gemini API) to automatically classify sentiment, cluster feedback into themes, detect emerging trends, answer plain-English questions grounded in real data, and generate boardroom-ready reports.
 
 The platform is built as a secure **multi-tenant SaaS application**, meaning multiple organizations ("workspaces") can use the same platform independently while their data stays completely isolated from one another — the same architecture pattern used by real products like Enterpret, Dovetail, and Productboard Insights.
 
@@ -108,7 +108,7 @@ This is the sentence the entire product — and this README — is built around.
 1. Design and ship a **multi-tenant web application** where each company's data is fully isolated from every other company's data.
 2. Implement **secure authentication and role-based access control (RBAC)** across at least three roles — Admin, Analyst, and Viewer.
 3. Build a **clean, predictable REST / Route-Handler API** consumed by the frontend, with no business logic leaking into UI components.
-4. Integrate the **Claude AI API** to deliver at least three meaningful AI features that genuinely require AI — not cosmetic add-ons.
+4. Integrate the **Gemini AI API** to deliver at least three meaningful AI features that genuinely require AI — not cosmetic add-ons.
 5. **Deploy** a production build to a public URL and document it so a stranger could run it locally.
 
 ### Learning Outcomes
@@ -159,7 +159,7 @@ These are explicitly excluded — building them instead of the required scope lo
 | Database | **PostgreSQL** (Neon or Supabase free tier) | Relational integrity for multi-tenant data |
 | ORM | **Prisma** | Type-safe schema, migrations, and queries |
 | Auth | **NextAuth (Auth.js)** | Sessions, providers, and role handling |
-| AI | **Anthropic Claude API** | Classification, summarization, and Q&A |
+| AI | **Gemini Gemini API** | Classification, summarization, and Q&A |
 | Embeddings / Search | **pgvector** or a hosted embeddings provider | Powers "Ask LOOP" semantic retrieval |
 | Charts | **Recharts** | Dashboard visualizations |
 | Validation | **Zod** | Runtime validation on every API boundary |
@@ -171,15 +171,15 @@ These are explicitly excluded — building them instead of the required scope lo
 
 ## 🏗 System Architecture
 
-LOOP follows a standard **three-tier architecture**. The browser only ever talks to LOOP's own API layer — the API layer is the sole component that talks to the database and to the Claude API.
+LOOP follows a standard **three-tier architecture**. The browser only ever talks to LOOP's own API layer — the API layer is the sole component that talks to the database and to the Gemini API.
 
 ### Request Flow
 
 1. The **browser** (React Server/Client Components) renders the UI and calls the app's own API route handlers.
 2. **Route handlers** authenticate the session, check the user's role, and scope every query to the caller's workspace.
 3. **Prisma** reads/writes PostgreSQL. All feedback rows carry a `workspaceId`; every query filters on it.
-4. For **AI features**, the route handler builds a prompt, calls the Claude API server-side, parses the response, and returns clean JSON to the browser.
-5. For **Ask LOOP**, the handler first retrieves the most relevant feedback via vector search, then passes it to Claude as grounding context before answering.
+4. For **AI features**, the route handler builds a prompt, calls the Gemini API server-side, parses the response, and returns clean JSON to the browser.
+5. For **Ask LOOP**, the handler first retrieves the most relevant feedback via vector search, then passes it to Gemini as grounding context before answering.
 
 > ⚠️ **Non-negotiable security rule:** Every single database query that touches feedback, themes, reports, or users **MUST** be filtered by the authenticated user's `workspaceId`. A user from Company A must never be able to read a row belonging to Company B — even by guessing an ID in the URL.
 
@@ -263,7 +263,7 @@ These four features are the heart of LOOP and carry the heaviest weight in gradi
 ### AI1 — Auto-Classification
 Every piece of feedback is automatically tagged so no one has to triage by hand.
 
-- On ingestion, each item is sent to Claude and returned with: sentiment, sentiment score, theme(s), and a short feature-area label
+- On ingestion, each item is sent to Gemini and returned with: sentiment, sentiment score, theme(s), and a short feature-area label
 - Output is strictly structured **JSON**, validated before saving
 - Classification is stored on the record — never recomputed on every page load
 - A manual **"re-classify"** action exists for corrections
@@ -297,7 +297,7 @@ Product managers can generate a weekly digest they could forward to leadership w
 ## 🧠 AI Implementation Approach
 
 ### Structured Classification (AI1)
-Claude is asked to return **JSON only**, with a fixed schema, validated with Zod before saving:
+Gemini is asked to return **JSON only**, with a fixed schema, validated with Zod before saving:
 
 - Feedback text plus the existing list of theme names is sent so the model reuses themes instead of inventing new ones each time
 - The model returns: `sentiment`, `sentimentScore` (-1 to 1), `themes[]`, `featureArea`, and a one-line rationale
@@ -308,13 +308,13 @@ Ask LOOP answers strictly from the data using a **retrieve-then-answer** pattern
 
 1. Every feedback item is embedded on ingestion; the vector is stored (pgvector or a vectors table)
 2. On a question, the question itself is embedded and the top-K most similar feedback items are retrieved
-3. Those items are passed to Claude as context, with an explicit instruction: *answer only from the provided feedback; if the answer isn't present, say so*
+3. Those items are passed to Gemini as context, with an explicit instruction: *answer only from the provided feedback; if the answer isn't present, say so*
 4. The answer is returned along with the list of feedback items used, so the response can be verified
 
 ### Report Generation (AI4)
-The period's stats (top themes, counts, sentiment deltas, a few representative quotes) are **pre-computed in code**, and Claude is asked to write the narrative around those numbers. This keeps the report accurate and cost-efficient, and prevents the model from hallucinating figures.
+The period's stats (top themes, counts, sentiment deltas, a few representative quotes) are **pre-computed in code**, and Gemini is asked to write the narrative around those numbers. This keeps the report accurate and cost-efficient, and prevents the model from hallucinating figures.
 
-> **Cost, safety, and keys:** The Claude API key stays server-side only — never shipped to the browser or committed to Git. Classification runs on ingest and results are cached; the model is never called on every page render.
+> **Cost, safety, and keys:** The Gemini API key stays server-side only — never shipped to the browser or committed to Git. Classification runs on ingest and results are cached; the model is never called on every page render.
 
 ---
 
@@ -349,7 +349,7 @@ The project runs across **four weeks (twenty working days)**. Each week is a spr
 
 | Day | Focus |
 |---|---|
-| 11 | AI service wiring: server-side Claude call, structured-JSON classification, Zod validation |
+| 11 | AI service wiring: server-side Gemini call, structured-JSON classification, Zod validation |
 | 12 | Classify on ingest + store results; back-fill classification across seeded data; manual re-classify |
 | 13 | Theme clustering: assign feedback to themes; theme list with counts and drill-down |
 | 14 | Trends view: theme volume over time + spike detection vs. previous period |
@@ -395,7 +395,7 @@ Only attempt once the required scope is excellent:
 
 - Node.js 18 LTS or newer, and Git
 - A free PostgreSQL database (Neon or Supabase)
-- An Anthropic API key
+- An Google Gemini API key
 - A Vercel account connected to GitHub
 
 ### First-Run Steps
@@ -404,10 +404,10 @@ Only attempt once the required scope is excellent:
 # 1. Create the app and install dependencies
 npx create-next-app@latest loop --typescript --tailwind --app
 cd loop && npm install prisma @prisma/client next-auth zod recharts
-npm install @anthropic-ai/sdk
+npm install @google/genai
 
 # 2. Configure environment variables (never commit this file)
-# .env -> DATABASE_URL, NEXTAUTH_SECRET, ANTHROPIC_API_KEY
+# .env -> DATABASE_URL, NEXTAUTH_SECRET, GEMINI_API_KEY
 
 # 3. Set up the database
 npx prisma migrate dev --name init
@@ -435,7 +435,7 @@ loop/
       reports/        # VoC generation
   components/          # UI building blocks (charts, tables, forms)
   lib/
-    ai.ts              # Claude calls: classify, answer, report
+    ai.ts              # Gemini calls: classify, answer, report
     search.ts          # embeddings + retrieval
     auth.ts            # session + role guards
     db.ts               # Prisma client
@@ -452,7 +452,7 @@ loop/
 
 Keep the following in `.env` locally and in Vercel's project settings for production:
 
-- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
 
@@ -560,7 +560,7 @@ The project is scored within a standard 100-point internship rubric.
 | Next.js | https://nextjs.org/docs |
 | Prisma | https://www.prisma.io/docs |
 | NextAuth / Auth.js | https://authjs.dev |
-| Anthropic Claude API | https://docs.claude.com |
+| Google Gemini API | https://docs.gemini.com |
 | Recharts | https://recharts.org |
 | Zod | https://zod.dev |
 | Neon Postgres | https://neon.tech/docs |
