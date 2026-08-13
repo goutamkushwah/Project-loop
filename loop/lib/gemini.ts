@@ -4,7 +4,9 @@ import { GoogleGenAI } from "@google/genai";
 
 import { env } from "@/lib/env";
 
-export const GEMINI_CLASSIFICATION_MODEL = "gemini-3.6-flash" as const;
+export const GEMINI_CLASSIFICATION_MODEL =
+  "gemini-3.6-flash" as const;
+
 export const GEMINI_API_VERSION = "v1" as const;
 
 const globalForGemini = globalThis as unknown as {
