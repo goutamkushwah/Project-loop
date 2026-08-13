@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { classifyFeedback } from "@/services/classification-service";
+import { assignFeedbackTheme } from "@/services/theme-service";
 
 type RouteContext = {
   params: Promise<{
@@ -57,11 +58,11 @@ export async function POST(
       feedback.content,
     );
 
-    console.log(
-      "GEMINI RESULT:",
-      classification,
-    );
+    console.log("GEMINI RESULT:", classification);
 
+    /*
+     * Save sentiment + feature information
+     */
     const updatedFeedback =
       await db.feedback.update({
         where: {
@@ -85,9 +86,37 @@ export async function POST(
       updatedFeedback.sentiment,
     );
 
+    /*
+     * DAY 13
+     *
+     * Assign feedback to the AI-generated theme.
+     */
+    const theme = await assignFeedbackTheme(
+      feedback.id,
+      feedback.workspaceId,
+      classification,
+    );
+
+    console.log(
+      "THEME ASSIGNED:",
+      theme.id,
+      theme.name,
+      classification.themeConfidence,
+    );
+
     return NextResponse.json({
       success: true,
+
       classification,
+
+      theme: {
+        id: theme.id,
+        name: theme.name,
+        description: theme.description,
+        color: theme.color,
+        confidence: classification.themeConfidence,
+      },
+
       feedback: updatedFeedback,
     });
   } catch (error) {
