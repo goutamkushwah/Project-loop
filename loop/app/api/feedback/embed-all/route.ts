@@ -27,27 +27,37 @@ export async function POST() {
       await Promise.all(
         batch.map(async (feedback) => {
           try {
-            await embedFeedback(
-              feedback.id,
-              feedback.workspaceId,
-              feedback.content,
-            );
+            await embedFeedback(feedback.content);
+
             succeeded += 1;
           } catch (error) {
             failed += 1;
+
             const message =
               error instanceof Error
                 ? error.message
                 : "Unknown embedding error";
 
-            console.error("EMBED-ALL ITEM FAILED:", feedback.id, message);
-            errors.push({ feedbackId: feedback.id, error: message });
+            console.error(
+              "EMBED-ALL ITEM FAILED:",
+              feedback.id,
+              message,
+            );
+
+            errors.push({
+              feedbackId: feedback.id,
+              error: message,
+            });
           }
         }),
       );
     }
 
-    console.log("EMBED-ALL DONE:", { total: pending.length, succeeded, failed });
+    console.log("EMBED-ALL DONE:", {
+      total: pending.length,
+      succeeded,
+      failed,
+    });
 
     return NextResponse.json({
       success: true,
