@@ -36,22 +36,58 @@ export async function POST(
       );
     }
 
-    const embedding = await embedFeedback(
+    const embedding = await embedFeedback(feedback.content);
+
+    console.log(
+      "EMBEDDING GENERATED:",
       feedback.id,
-      feedback.workspaceId,
-      feedback.content,
+      embedding.length,
     );
+
+    const vectorLiteral = `[${embedding.join(",")}]`;
+
+    await db.$executeRaw`
+      INSERT INTO "Embedding" (
+        "id",
+        "feedbackId",
+        "workspaceId",
+        "vector",
+        "provider",
+        "model",
+        "dimensions",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES (
+        gen_random_uuid(),
+        ${feedback.id}::uuid,
+        ${feedback.workspaceId}::uuid,
+        ${vectorLiteral}::vector,
+        'google',
+        'gemini-embedding-001',
+        ${embedding.length},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT ("feedbackId")
+      DO UPDATE SET
+        "vector" = EXCLUDED."vector",
+        "provider" = EXCLUDED."provider",
+        "model" = EXCLUDED."model",
+        "dimensions" = EXCLUDED."dimensions",
+        "updatedAt" = NOW()
+    `;
 
     console.log(
       "EMBEDDING STORED:",
-      embedding.feedbackId,
-      embedding.dimensions,
+      feedback.id,
+      embedding.length,
     );
 
     return NextResponse.json({
       success: true,
-      feedbackId: embedding.feedbackId,
-      dimensions: embedding.dimensions,
+      feedbackId: feedback.id,
+      dimensions: embedding.length,
     });
   } catch (error) {
     console.error("EMBEDDING FAILED:", error);
