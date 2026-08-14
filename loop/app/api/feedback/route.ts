@@ -12,6 +12,7 @@ import {
   listWorkspaceFeedback,
 } from "@/services/feedback-service";
 import { classifyFeedback } from "@/services/classification-service";
+import { assignFeedbackTheme } from "@/services/theme-service";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -79,9 +80,11 @@ export async function POST(request: Request) {
   const contentType =
     request.headers.get("content-type") ?? "";
 
-  if (!contentType
-    .toLowerCase()
-    .includes("application/json")) {
+  if (
+    !contentType
+      .toLowerCase()
+      .includes("application/json")
+  ) {
     return apiError(
       "INVALID_CONTENT_TYPE",
       "Content-Type must be application/json.",
@@ -252,6 +255,13 @@ async function classifyNewFeedback(
           classifiedAt: new Date(),
         },
       });
+
+    // Assign feedback to its classified theme
+    await assignFeedbackTheme(
+      feedback.id,
+      feedback.workspaceId,
+      classification,
+    );
 
     console.log(
       "AUTO CLASSIFICATION COMPLETED:",
