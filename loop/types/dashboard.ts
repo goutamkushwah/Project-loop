@@ -50,3 +50,38 @@ export type DashboardAnalyticsData = {
   sentiment: DashboardSentimentPoint[];
   topThemes: DashboardThemePoint[];
 };
+
+export type TrendSeriesPoint = {
+  date: string;
+  label: string;
+  count: number;
+};
+
+export type ThemeTrendSeries = {
+  id: string;
+  name: string;
+  color: string;
+  points: TrendSeriesPoint[];
+  totalCount: number;
+};
+
+export type TrendSpike = {
+  themeId: string;
+  themeName: string;
+  color: string;
+  date: string;
+  label: string;
+  count: number;
+  baselineAverage: number;
+  percentageIncrease: number;
+};
+
+export type DashboardTrendsData = {
+  period: {
+    dateFrom: string;
+    dateTo: string;
+    dayCount: number;
+  };
+  themeSeries: ThemeTrendSeries[];
+  spikes: TrendSpike[];
+};

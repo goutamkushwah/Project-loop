@@ -3,10 +3,14 @@ import Link from "next/link";
 
 import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
 import { DashboardFilterBar } from "@/components/dashboard/dashboard-filter-bar";
+import { DashboardTrends } from "@/components/dashboard/dashboard-trends";
 import { requirePagePermission } from "@/lib/authorization";
 import { dashboardQuerySchema, getDefaultDashboardRange } from "@/lib/dashboard-validation";
 import { PERMISSIONS } from "@/lib/rbac";
-import { getWorkspaceDashboardAnalytics } from "@/services/dashboard-service";
+import {
+  getWorkspaceDashboardAnalytics,
+  getWorkspaceDashboardTrends,
+} from "@/services/dashboard-service";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -44,6 +48,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         status: null,
       };
   const analytics = await getWorkspaceDashboardAnalytics(user.workspaceId, query);
+  const trends = await getWorkspaceDashboardTrends(user.workspaceId, query);
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
@@ -90,6 +95,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <div className="mt-6">
         <DashboardAnalytics data={analytics} />
+      </div>
+
+      <div className="mt-6">
+        <DashboardTrends data={trends} />
       </div>
 
       <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
