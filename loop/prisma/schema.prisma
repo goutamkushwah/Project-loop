@@ -19,6 +19,7 @@ model Workspace {
   feedback       Feedback[]
   feedbackThemes FeedbackTheme[]
   reports        Report[]
+  searchHistory  SearchHistory[]
   themes         Theme[]
   users          User[]
   invitations    WorkspaceInvitation[]
@@ -39,6 +40,7 @@ model User {
   updatedAt          DateTime              @updatedAt @db.Timestamptz(3)
   workspaceId        String                @db.Uuid
   generatedReports   Report[]              @relation("ReportGenerator")
+  searchHistory      SearchHistory[]
   workspace          Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   invitationsCreated WorkspaceInvitation[] @relation("InvitationCreator")
 
@@ -68,26 +70,32 @@ model WorkspaceInvitation {
 }
 
 model Feedback {
-  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  content                 String
-  channel                 FeedbackChannel
-  sourceRef               String?              @db.VarChar(255)
-  customerLabel           String?              @db.VarChar(160)
-  sentiment               FeedbackSentiment?
-  sentimentScore          Decimal?             @db.Decimal(4, 3)
-  featureArea             String?              @db.VarChar(120)
-  classificationRationale String?              @db.VarChar(500)
-  classificationStatus    ClassificationStatus @default(PENDING)
-  classificationAttempts  Int                  @default(0)
-  classificationError     String?
-  classifiedAt            DateTime?            @db.Timestamptz(3)
-  status                  FeedbackStatus       @default(NEW)
-  createdAt               DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime             @updatedAt @db.Timestamptz(3)
-  workspaceId             String               @db.Uuid
-  embedding               Embedding?
-  workspace               Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  themes                  FeedbackTheme[]
+  id                              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content                         String
+  channel                         FeedbackChannel
+  sourceRef                       String?              @db.VarChar(255)
+  customerLabel                   String?              @db.VarChar(160)
+  sentiment                       FeedbackSentiment?
+  sentimentScore                  Decimal?             @db.Decimal(4, 3)
+  featureArea                     String?              @db.VarChar(120)
+  classificationRationale         String?              @db.VarChar(500)
+  classificationStatus            ClassificationStatus @default(PENDING)
+  classificationAttempts          Int                  @default(0)
+  classificationError             String?
+  classifiedAt                    DateTime?            @db.Timestamptz(3)
+  status                          FeedbackStatus       @default(NEW)
+  createdAt                       DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                       DateTime             @updatedAt @db.Timestamptz(3)
+  workspaceId                     String               @db.Uuid
+  classificationInputTokens       Int?
+  classificationModel             String?              @db.VarChar(120)
+  classificationOutputTokens      Int?
+  classificationPayload           Json?
+  classificationProviderRequestId String?              @db.VarChar(255)
+  classificationStartedAt         DateTime?            @db.Timestamptz(3)
+  embedding                       Embedding?
+  workspace                       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  themes                          FeedbackTheme[]
 
   @@unique([workspaceId, channel, sourceRef])
   @@index([workspaceId, createdAt(sort: Desc)])
@@ -95,6 +103,7 @@ model Feedback {
   @@index([workspaceId, sentiment, createdAt(sort: Desc)])
   @@index([workspaceId, status, createdAt(sort: Desc)])
   @@index([workspaceId, classificationStatus, createdAt(sort: Desc)])
+  @@index([workspaceId, classificationStatus, classificationStartedAt])
 }
 
 model Theme {
@@ -159,6 +168,20 @@ model Report {
   @@index([workspaceId, periodStart, periodEnd])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([generatedById])
+}
+
+model SearchHistory {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question    String   @db.VarChar(500)
+  answer      String
+  workspaceId String   @db.Uuid
+  userId      String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 enum UserRole {
