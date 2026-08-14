@@ -21,7 +21,6 @@ function roleLabel(role: UserRole): string {
 
 export function AppHeader({ user }: AppHeaderProps) {
   const canReadFeedback = hasPermission(user.role, PERMISSIONS.FEEDBACK_READ);
-  const canClassify = hasPermission(user.role, PERMISSIONS.AI_CLASSIFY);
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
   return (
@@ -72,14 +71,12 @@ export function AppHeader({ user }: AppHeaderProps) {
                 Inbox
               </Link>
             ) : null}
-            {canClassify ? (
-              <Link
-                href="/ai/classification"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
-                AI Classify
-              </Link>
-            ) : null}
+            <Link
+  href="/dashboard/themes"
+  className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+>
+  Themes
+</Link>
             {canManageMembers ? (
               <Link
                 href="/settings/members"

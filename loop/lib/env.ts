@@ -20,10 +20,10 @@ const serverEnvironmentSchema = z.object({
   NEXTAUTH_SECRET: z
     .string({ required_error: "NEXTAUTH_SECRET is required." })
     .min(32, "NEXTAUTH_SECRET must contain at least 32 characters."),
-  ANTHROPIC_API_KEY: z.preprocess(
-    emptyStringToUndefined,
-    z.string().trim().min(20, "ANTHROPIC_API_KEY appears to be invalid.").optional(),
-  ),
+  GEMINI_API_KEY: z
+    .string({ required_error: "GEMINI_API_KEY is required from Day 11 onward." })
+    .trim()
+    .min(20, "GEMINI_API_KEY appears to be invalid."),
 });
 
 const parsedEnvironment = serverEnvironmentSchema.safeParse(process.env);
