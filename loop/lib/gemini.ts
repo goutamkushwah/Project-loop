@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 
 export const GEMINI_CLASSIFICATION_MODEL = "gemini-3.6-flash" as const;
 export const GEMINI_ASK_MODEL = GEMINI_CLASSIFICATION_MODEL;
+export const GEMINI_REPORT_MODEL = GEMINI_CLASSIFICATION_MODEL;
 export const GEMINI_EMBEDDING_MODEL = "gemini-embedding-2" as const;
 export const GEMINI_EMBEDDING_DIMENSIONS = 768 as const;
 export const GEMINI_API_VERSION = "v1" as const;
