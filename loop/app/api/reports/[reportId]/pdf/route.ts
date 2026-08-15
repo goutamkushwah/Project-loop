@@ -167,7 +167,7 @@ export async function GET(
       doc
         .fontSize(11)
         .font("Helvetica")
-        .text(content.narrative.summary);
+        .text(content.narrative.executiveSummary);
 
       doc.moveDown();
 
@@ -183,7 +183,7 @@ export async function GET(
           doc
             .fontSize(11)
             .font("Helvetica")
-            .text(`• ${action.action}`);
+           .text(`• ${action.title}`);
 
           doc.moveDown(0.3);
         }
