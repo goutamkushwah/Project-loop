@@ -19,7 +19,7 @@ import type {
 } from "@/types/feedback-classification";
 
 const CLASSIFICATION_STALE_AFTER_MS = 15 * 60 * 1_000;
-const BATCH_CONCURRENCY = 3;
+const BATCH_CONCURRENCY = 1;
 const PROVIDER = "GOOGLE_GEMINI" as const;
 
 export class FeedbackClassificationServiceError extends Error {
@@ -174,127 +174,136 @@ async function persistSuccessfulClassifications(
     return;
   }
 
-  await db.$transaction(async (transaction) => {
-    // Serialize theme creation per workspace so parallel AI batches cannot create
-    // case-variant duplicates before either transaction can observe the other.
-    await transaction.$executeRaw(Prisma.sql`
+  await db.$transaction(
+    async (transaction) => {
+      // Serialize theme creation per workspace so parallel AI batches cannot create
+      // case-variant duplicates before either transaction can observe the other.
+      await transaction.$executeRaw(Prisma.sql`
   SELECT pg_advisory_xact_lock(hashtext(${workspaceId}))
 `);
 
-    const existingThemes = await transaction.theme.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-    const themeByNormalizedName = new Map(
-      existingThemes.map((theme) => [normalizeThemeName(theme.name), theme]),
-    );
-    const missingThemeByNormalizedName = new Map<string, string>();
-
-    classifications.forEach((classification) => {
-      classification.themes.forEach((theme) => {
-        const normalizedName = normalizeThemeName(theme.name);
-
-        if (
-          !themeByNormalizedName.has(normalizedName) &&
-          !missingThemeByNormalizedName.has(normalizedName)
-        ) {
-          missingThemeByNormalizedName.set(normalizedName, theme.name.trim().replace(/\s+/g, " "));
-        }
-      });
-    });
-
-    if (missingThemeByNormalizedName.size > 0) {
-      await transaction.theme.createMany({
-        data: Array.from(missingThemeByNormalizedName.values()).map((name) => ({
-          workspaceId,
-          name,
-          description: themeDescriptionForName(name),
-          color: themeColorForName(name),
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    const resolvedThemes = await transaction.theme.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-    const resolvedThemeByNormalizedName = new Map(
-      resolvedThemes.map((theme) => [normalizeThemeName(theme.name), theme]),
-    );
-    const feedbackIds = classifications.map((classification) => classification.feedbackId);
-
-    await transaction.feedbackTheme.deleteMany({
-      where: {
-        workspaceId,
-        feedbackId: {
-          in: feedbackIds,
-        },
-      },
-    });
-
-    const classifiedAt = new Date();
-
-    for (const classification of classifications) {
-      const updated = await transaction.feedback.updateMany({
+      const existingThemes = await transaction.theme.findMany({
         where: {
-          id: classification.feedbackId,
           workspaceId,
-          classificationStatus: ClassificationStatus.PROCESSING,
         },
-        data: {
-          sentiment: classification.sentiment,
-          sentimentScore: roundDatabaseScore(classification.sentimentScore),
-          featureArea: classification.featureArea.trim(),
-          classificationRationale: classification.rationale.trim(),
-          classificationStatus: ClassificationStatus.COMPLETED,
-          classificationAttempts: attempts,
-          classificationError: null,
-          classifiedAt,
+        select: {
+          id: true,
+          name: true,
         },
       });
+      const themeByNormalizedName = new Map(
+        existingThemes.map((theme) => [normalizeThemeName(theme.name), theme]),
+      );
+      const missingThemeByNormalizedName = new Map<string, string>();
 
-      if (updated.count !== 1) {
-        throw new Error(
-          `Feedback ${classification.feedbackId} could not be finalized because its classification state changed.`,
-        );
+      classifications.forEach((classification) => {
+        classification.themes.forEach((theme) => {
+          const normalizedName = normalizeThemeName(theme.name);
+
+          if (
+            !themeByNormalizedName.has(normalizedName) &&
+            !missingThemeByNormalizedName.has(normalizedName)
+          ) {
+            missingThemeByNormalizedName.set(
+              normalizedName,
+              theme.name.trim().replace(/\s+/g, " "),
+            );
+          }
+        });
+      });
+
+      if (missingThemeByNormalizedName.size > 0) {
+        await transaction.theme.createMany({
+          data: Array.from(missingThemeByNormalizedName.values()).map((name) => ({
+            workspaceId,
+            name,
+            description: themeDescriptionForName(name),
+            color: themeColorForName(name),
+          })),
+          skipDuplicates: true,
+        });
       }
-    }
 
-    const assignments = classifications.flatMap((classification) =>
-      classification.themes.map((theme) => {
-        const resolvedTheme = resolvedThemeByNormalizedName.get(normalizeThemeName(theme.name));
-
-        if (!resolvedTheme) {
-          throw new Error(`Theme ${theme.name} could not be resolved inside the workspace.`);
-        }
-
-        return {
+      const resolvedThemes = await transaction.theme.findMany({
+        where: {
           workspaceId,
-          feedbackId: classification.feedbackId,
-          themeId: resolvedTheme.id,
-          confidence: roundDatabaseScore(theme.confidence),
-        };
-      }),
-    );
-
-    if (assignments.length > 0) {
-      await transaction.feedbackTheme.createMany({
-        data: assignments,
-        skipDuplicates: true,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
       });
-    }
-  });
+      const resolvedThemeByNormalizedName = new Map(
+        resolvedThemes.map((theme) => [normalizeThemeName(theme.name), theme]),
+      );
+      const feedbackIds = classifications.map((classification) => classification.feedbackId);
+
+      await transaction.feedbackTheme.deleteMany({
+        where: {
+          workspaceId,
+          feedbackId: {
+            in: feedbackIds,
+          },
+        },
+      });
+
+      const classifiedAt = new Date();
+
+      for (const classification of classifications) {
+        const updated = await transaction.feedback.updateMany({
+          where: {
+            id: classification.feedbackId,
+            workspaceId,
+            classificationStatus: ClassificationStatus.PROCESSING,
+          },
+          data: {
+            sentiment: classification.sentiment,
+            sentimentScore: roundDatabaseScore(classification.sentimentScore),
+            featureArea: classification.featureArea.trim(),
+            classificationRationale: classification.rationale.trim(),
+            classificationStatus: ClassificationStatus.COMPLETED,
+            classificationAttempts: attempts,
+            classificationError: null,
+            classifiedAt,
+          },
+        });
+
+        if (updated.count !== 1) {
+          throw new Error(
+            `Feedback ${classification.feedbackId} could not be finalized because its classification state changed.`,
+          );
+        }
+      }
+
+      const assignments = classifications.flatMap((classification) =>
+        classification.themes.map((theme) => {
+          const resolvedTheme = resolvedThemeByNormalizedName.get(normalizeThemeName(theme.name));
+
+          if (!resolvedTheme) {
+            throw new Error(`Theme ${theme.name} could not be resolved inside the workspace.`);
+          }
+
+          return {
+            workspaceId,
+            feedbackId: classification.feedbackId,
+            themeId: resolvedTheme.id,
+            confidence: roundDatabaseScore(theme.confidence),
+          };
+        }),
+      );
+
+      if (assignments.length > 0) {
+        await transaction.feedbackTheme.createMany({
+          data: assignments,
+          skipDuplicates: true,
+        });
+      }
+    },
+    {
+      maxWait: 60000,
+      timeout: 60000,
+    },
+  );
 }
 
 function toPersistableClassification(
