@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { embedFeedback } from "@/services/embedding-service";
+import { embedWorkspaceFeedback } from "@/services/embedding-service";
 
 type RouteContext = {
   params: Promise<{
@@ -36,58 +36,20 @@ export async function POST(
       );
     }
 
-    const embedding = await embedFeedback(feedback.content);
-
-    console.log(
-      "EMBEDDING GENERATED:",
+    const success = await embedWorkspaceFeedback(
+      feedback.workspaceId,
       feedback.id,
-      embedding.length,
     );
 
-    const vectorLiteral = `[${embedding.join(",")}]`;
+    if (!success) {
+      throw new Error("Embedding generation failed");
+    }
 
-    await db.$executeRaw`
-      INSERT INTO "Embedding" (
-        "id",
-        "feedbackId",
-        "workspaceId",
-        "vector",
-        "provider",
-        "model",
-        "dimensions",
-        "createdAt",
-        "updatedAt"
-      )
-      VALUES (
-        gen_random_uuid(),
-        ${feedback.id}::uuid,
-        ${feedback.workspaceId}::uuid,
-        ${vectorLiteral}::vector,
-        'google',
-        'gemini-embedding-001',
-        ${embedding.length},
-        NOW(),
-        NOW()
-      )
-      ON CONFLICT ("feedbackId")
-      DO UPDATE SET
-        "vector" = EXCLUDED."vector",
-        "provider" = EXCLUDED."provider",
-        "model" = EXCLUDED."model",
-        "dimensions" = EXCLUDED."dimensions",
-        "updatedAt" = NOW()
-    `;
-
-    console.log(
-      "EMBEDDING STORED:",
-      feedback.id,
-      embedding.length,
-    );
+    console.log("EMBEDDING STORED:", feedback.id);
 
     return NextResponse.json({
       success: true,
       feedbackId: feedback.id,
-      dimensions: embedding.length,
     });
   } catch (error) {
     console.error("EMBEDDING FAILED:", error);
