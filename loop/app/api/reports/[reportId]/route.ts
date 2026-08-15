@@ -7,11 +7,16 @@ import { getWorkspaceReport, ReportServiceError } from "@/services/report-servic
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(_request: Request, context: { params: { reportId: string } }) {
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ reportId: string }> }
+) {
   const authorization = await authorizeApi(PERMISSIONS.REPORTS_READ);
   if (!authorization.ok) return authorization.response;
 
-  const parsedId = reportIdSchema.safeParse(context.params.reportId);
+  const { reportId } = await context.params;
+
+  const parsedId = reportIdSchema.safeParse(reportId);
   if (!parsedId.success) {
     return apiError("VALIDATION_ERROR", "Report ID must be a valid UUID.", 422);
   }
