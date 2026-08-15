@@ -7,16 +7,13 @@ import { requirePagePermission } from "@/lib/authorization";
 import { feedbackListQuerySchema } from "@/lib/feedback-validation";
 import { PERMISSIONS } from "@/lib/rbac";
 import { themeIdSchema } from "@/lib/theme-validation";
-import {
-  listWorkspaceThemeFeedback,
-  ThemeServiceError,
-} from "@/services/theme-service";
+import { listWorkspaceThemeFeedback, ThemeServiceError } from "@/services/theme-service";
 
 type ThemeDetailPageProps = {
-  params: {
+  params: Promise<{
     themeId: string;
-  };
-  searchParams?: Record<string, string | string[] | undefined>;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstValue(value: string | string[] | undefined): string | undefined {
@@ -24,7 +21,9 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 }
 
 export async function generateMetadata({ params }: ThemeDetailPageProps): Promise<Metadata> {
-  const parsedThemeId = themeIdSchema.safeParse(params.themeId);
+  const resolvedParams = await params;
+
+  const parsedThemeId = themeIdSchema.safeParse(resolvedParams.themeId);
 
   return {
     title: parsedThemeId.success ? "Theme feedback" : "Theme not found",
@@ -35,17 +34,21 @@ export async function generateMetadata({ params }: ThemeDetailPageProps): Promis
 export const dynamic = "force-dynamic";
 
 export default async function ThemeDetailPage({ params, searchParams }: ThemeDetailPageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
   const user = await requirePagePermission(PERMISSIONS.THEMES_READ);
-  const parsedThemeId = themeIdSchema.safeParse(params.themeId);
+
+  const parsedThemeId = themeIdSchema.safeParse(resolvedParams.themeId);
 
   if (!parsedThemeId.success) {
     notFound();
   }
 
   const parsedQuery = feedbackListQuerySchema.safeParse({
-    page: firstValue(searchParams?.page),
+    page: firstValue(resolvedSearchParams?.page),
     pageSize: 10,
-    search: firstValue(searchParams?.search) ?? "",
+    search: firstValue(resolvedSearchParams?.search) ?? "",
     sortOrder: "desc",
     themeId: parsedThemeId.data,
   });
@@ -114,7 +117,10 @@ export default async function ThemeDetailPage({ params, searchParams }: ThemeDet
         </div>
 
         {!parsedQuery.success ? (
-          <div role="alert" className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
+          <div
+            role="alert"
+            className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900"
+          >
             The requested feedback query was invalid, so LOOP restored the default theme drill-down.
           </div>
         ) : null}

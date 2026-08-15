@@ -80,6 +80,14 @@ export function AppHeader({ user }: AppHeaderProps) {
                 Themes
               </Link>
             ) : null}
+            {canReadThemes ? (
+              <Link
+                href="/trends"
+                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+              >
+                Trends
+              </Link>
+            ) : null}
             {canManageMembers ? (
               <Link
                 href="/settings/members"

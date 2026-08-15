@@ -177,9 +177,9 @@ async function persistSuccessfulClassifications(
   await db.$transaction(async (transaction) => {
     // Serialize theme creation per workspace so parallel AI batches cannot create
     // case-variant duplicates before either transaction can observe the other.
-    await transaction.$queryRaw(Prisma.sql`
-      SELECT pg_advisory_xact_lock(hashtext(${workspaceId}))
-    `);
+    await transaction.$executeRaw(Prisma.sql`
+  SELECT pg_advisory_xact_lock(hashtext(${workspaceId}))
+`);
 
     const existingThemes = await transaction.theme.findMany({
       where: {
@@ -342,11 +342,7 @@ async function processClaimedBatch(
       };
     }
 
-    await persistSuccessfulClassifications(
-      workspaceId,
-      result.classifications,
-      result.attempts,
-    );
+    await persistSuccessfulClassifications(workspaceId, result.classifications, result.attempts);
 
     return {
       completedRows: result.classifications.length,

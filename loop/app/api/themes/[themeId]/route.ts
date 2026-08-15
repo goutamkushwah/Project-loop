@@ -8,34 +8,29 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     themeId: string;
-  };
+  }>;
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
+  const { themeId } = await params;
   const authorization = await authorizeApi(PERMISSIONS.THEMES_READ);
 
   if (!authorization.ok) {
     return authorization.response;
   }
 
-  const parsedThemeId = themeIdSchema.safeParse(params.themeId);
+  const parsedThemeId = themeIdSchema.safeParse(themeId);
 
   if (!parsedThemeId.success) {
-    return apiError(
-      "VALIDATION_ERROR",
-      "The theme identifier is invalid.",
-      422,
-      { themeId: parsedThemeId.error.flatten().formErrors },
-    );
+    return apiError("VALIDATION_ERROR", "The theme identifier is invalid.", 422, {
+      themeId: parsedThemeId.error.flatten().formErrors,
+    });
   }
 
   try {
-    const theme = await getWorkspaceTheme(
-      authorization.user.workspaceId,
-      parsedThemeId.data,
-    );
+    const theme = await getWorkspaceTheme(authorization.user.workspaceId, parsedThemeId.data);
 
     if (!theme) {
       return apiError(
@@ -49,10 +44,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
   } catch (error: unknown) {
     console.error("Theme detail failed.", error);
 
-    return apiError(
-      "THEME_LIST_FAILED",
-      "The theme could not be loaded. Please try again.",
-      500,
-    );
+    return apiError("THEME_LIST_FAILED", "The theme could not be loaded. Please try again.", 500);
   }
 }

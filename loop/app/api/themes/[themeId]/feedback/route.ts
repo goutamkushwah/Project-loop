@@ -3,36 +3,31 @@ import { authorizeApi } from "@/lib/authorization";
 import { feedbackListQuerySchema } from "@/lib/feedback-validation";
 import { PERMISSIONS } from "@/lib/rbac";
 import { themeIdSchema } from "@/lib/theme-validation";
-import {
-  listWorkspaceThemeFeedback,
-  ThemeServiceError,
-} from "@/services/theme-service";
+import { listWorkspaceThemeFeedback, ThemeServiceError } from "@/services/theme-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     themeId: string;
-  };
+  }>;
 };
 
 export async function GET(request: Request, { params }: RouteContext) {
+  const { themeId } = await params;
   const authorization = await authorizeApi(PERMISSIONS.THEMES_READ);
 
   if (!authorization.ok) {
     return authorization.response;
   }
 
-  const parsedThemeId = themeIdSchema.safeParse(params.themeId);
+  const parsedThemeId = themeIdSchema.safeParse(themeId);
 
   if (!parsedThemeId.success) {
-    return apiError(
-      "VALIDATION_ERROR",
-      "The theme identifier is invalid.",
-      422,
-      { themeId: parsedThemeId.error.flatten().formErrors },
-    );
+    return apiError("VALIDATION_ERROR", "The theme identifier is invalid.", 422, {
+      themeId: parsedThemeId.error.flatten().formErrors,
+    });
   }
 
   const url = new URL(request.url);

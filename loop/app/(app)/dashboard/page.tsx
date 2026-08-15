@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type DashboardPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstSearchValue(value: string | string[] | undefined): string | undefined {
@@ -25,11 +25,14 @@ function firstSearchValue(value: string | string[] | undefined): string | undefi
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const user = await requirePagePermission(PERMISSIONS.DASHBOARD_READ);
+
+  const params = await searchParams;
+
   const rawQuery = {
-    dateFrom: firstSearchValue(searchParams?.dateFrom),
-    dateTo: firstSearchValue(searchParams?.dateTo),
-    channel: firstSearchValue(searchParams?.channel),
-    status: firstSearchValue(searchParams?.status),
+    dateFrom: firstSearchValue(params?.dateFrom),
+    dateTo: firstSearchValue(params?.dateTo),
+    channel: firstSearchValue(params?.channel),
+    status: firstSearchValue(params?.status),
   };
   const parsedQuery = dashboardQuerySchema.safeParse(rawQuery);
   const fallbackRange = getDefaultDashboardRange();
@@ -54,7 +57,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
             Volume, stored sentiment, and theme assignments are calculated from real records in the
-            isolated {user.workspace.name} workspace. Every chart uses one server-validated filter set.
+            isolated {user.workspace.name} workspace. Every chart uses one server-validated filter
+            set.
           </p>
         </div>
 
@@ -98,11 +102,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-600">
           Day 13 theme data note
         </p>
-        <h2 className="mt-2 text-xl font-black text-slate-900">No analytics values are fabricated.</h2>
+        <h2 className="mt-2 text-xl font-black text-slate-900">
+          No analytics values are fabricated.
+        </h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
-          Volume and stat totals come directly from PostgreSQL. Theme counts use stored, tenant-scoped
-          FeedbackTheme assignments. The dedicated Themes view drills each count back to its underlying
-          feedback instead of presenting an unsupported AI summary.
+          Volume and stat totals come directly from PostgreSQL. Theme counts use stored,
+          tenant-scoped FeedbackTheme assignments. The dedicated Themes view drills each count back
+          to its underlying feedback instead of presenting an unsupported AI summary.
         </p>
       </section>
     </main>
