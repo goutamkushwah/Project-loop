@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { embedFeedback } from "@/services/embedding-service";
+import { embedWorkspaceFeedback } from "@/services/embedding-service";
 
 const BATCH_SIZE = 20;
 
@@ -27,7 +27,14 @@ export async function POST() {
       await Promise.all(
         batch.map(async (feedback) => {
           try {
-            await embedFeedback(feedback.content);
+            const success = await embedWorkspaceFeedback(
+              feedback.workspaceId,
+              feedback.id,
+            );
+
+            if (!success) {
+              throw new Error("Embedding failed");
+            }
 
             succeeded += 1;
           } catch (error) {
