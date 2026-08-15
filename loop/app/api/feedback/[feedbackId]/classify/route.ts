@@ -14,12 +14,13 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     feedbackId: string;
-  };
+  }>;
 };
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const { feedbackId } = await params;
   if (!isTrustedMutationRequest(request)) {
     return apiError(
       "CROSS_SITE_REQUEST_BLOCKED",
@@ -34,7 +35,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     return authorization.response;
   }
 
-  const parsedFeedbackId = feedbackIdSchema.safeParse(params.feedbackId);
+ const parsedFeedbackId = feedbackIdSchema.safeParse(feedbackId);
 
   if (!parsedFeedbackId.success) {
     return apiError(

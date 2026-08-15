@@ -1,4 +1,4 @@
-import "server-only";
+//import "server-only";
 
 const THEME_COLOR_PALETTE = [
   "#7C6CE7",
