@@ -23,6 +23,7 @@ export function AppHeader({ user }: AppHeaderProps) {
   const canReadFeedback = hasPermission(user.role, PERMISSIONS.FEEDBACK_READ);
   const canReadThemes = hasPermission(user.role, PERMISSIONS.THEMES_READ);
   const canAskLoop = hasPermission(user.role, PERMISSIONS.ASK_LOOP_QUERY);
+  const canReadReports = hasPermission(user.role, PERMISSIONS.REPORTS_READ);
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
   return (
@@ -95,6 +96,14 @@ export function AppHeader({ user }: AppHeaderProps) {
                 className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
                 Trends
+              </Link>
+            ) : null}
+            {canReadReports ? (
+              <Link
+                href="/reports"
+                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+              >
+                Reports
               </Link>
             ) : null}
             {canManageMembers ? (
