@@ -4,6 +4,7 @@ import { FeedbackStatus, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { classifyWorkspaceFeedback } from "@/services/feedback-classification-service";
+import { embedWorkspaceFeedback } from "@/services/embedding-service";
 import type {
   FeedbackCreateInput,
   FeedbackListQuery,
@@ -190,72 +191,75 @@ export async function listWorkspaceFeedback(
   const whereSql = buildFeedbackWhereSql(workspaceId, query);
   const sortDirection = query.sortOrder === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
 
-  const countRows = await db.$queryRaw<FeedbackCountRow[]>(Prisma.sql`
-    SELECT COUNT(*)::bigint AS "count"
-    FROM "Feedback" AS f
-    WHERE ${whereSql}
-  `);
+  return db.$transaction(
+    async (transaction) => {
+      const countRows = await transaction.$queryRaw<FeedbackCountRow[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS "count"
+        FROM "Feedback" AS f
+        WHERE ${whereSql}
+      `);
+      const totalItems = countRows[0] ? Number(countRows[0].count) : 0;
+      const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+      const effectivePage = Math.min(query.page, totalPages);
+      const skip = (effectivePage - 1) * query.pageSize;
 
-  const totalItems = countRows[0] ? Number(countRows[0].count) : 0;
-  const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
-  const effectivePage = Math.min(query.page, totalPages);
-  const skip = (effectivePage - 1) * query.pageSize;
+      const idRows =
+        totalItems === 0
+          ? []
+          : await transaction.$queryRaw<FeedbackIdRow[]>(Prisma.sql`
+              SELECT f."id"
+              FROM "Feedback" AS f
+              WHERE ${whereSql}
+              ORDER BY f."createdAt" ${sortDirection}, f."id" ASC
+              LIMIT ${query.pageSize}
+              OFFSET ${skip}
+            `);
 
-  const idRows =
-    totalItems === 0
-      ? []
-      : await db.$queryRaw<FeedbackIdRow[]>(Prisma.sql`
-          SELECT f."id"
-          FROM "Feedback" AS f
-          WHERE ${whereSql}
-          ORDER BY f."createdAt" ${sortDirection}, f."id" ASC
-          LIMIT ${query.pageSize}
-          OFFSET ${skip}
-        `);
+      const orderedIds = idRows.map((row) => row.id);
+      const selectedFeedback =
+        orderedIds.length === 0
+          ? []
+          : await transaction.feedback.findMany({
+              where: {
+                workspaceId,
+                id: {
+                  in: orderedIds,
+                },
+              },
+              select: feedbackSelect,
+            });
+      const feedbackById = new Map(
+        selectedFeedback.map((feedback) => [feedback.id, feedback]),
+      );
+      const feedbackItems = orderedIds.flatMap((id) => {
+        const feedback = feedbackById.get(id);
+        return feedback ? [feedback] : [];
+      });
 
-  const orderedIds = idRows.map((row) => row.id);
-
-  const selectedFeedback =
-    orderedIds.length === 0
-      ? []
-      : await db.feedback.findMany({
-          where: {
-            workspaceId,
-            id: {
-              in: orderedIds,
-            },
-          },
-          select: feedbackSelect,
-        });
-
-  const feedbackById = new Map(
-    selectedFeedback.map((feedback) => [feedback.id, feedback]),
+      return {
+        items: feedbackItems.map(serializeFeedback),
+        pagination: {
+          page: effectivePage,
+          pageSize: query.pageSize,
+          totalItems,
+          totalPages,
+        },
+        query: {
+          search: query.search,
+          channel: query.channel ?? null,
+          sentiment: query.sentiment ?? null,
+          themeId: query.themeId ?? null,
+          status: query.status ?? null,
+          dateFrom: query.dateFrom ?? null,
+          dateTo: query.dateTo ?? null,
+          sortOrder: query.sortOrder,
+        },
+      };
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    },
   );
-
-  const feedbackItems = orderedIds.flatMap((id) => {
-    const feedback = feedbackById.get(id);
-    return feedback ? [feedback] : [];
-  });
-
-  return {
-    items: feedbackItems.map(serializeFeedback),
-    pagination: {
-      page: effectivePage,
-      pageSize: query.pageSize,
-      totalItems,
-      totalPages,
-    },
-    query: {
-      search: query.search,
-      channel: query.channel ?? null,
-      sentiment: query.sentiment ?? null,
-      themeId: query.themeId ?? null,
-      status: query.status ?? null,
-      dateFrom: query.dateFrom ?? null,
-      dateTo: query.dateTo ?? null,
-      sortOrder: query.sortOrder,
-    },
-  };
 }
 
 export async function createWorkspaceFeedback(
@@ -279,7 +283,17 @@ export async function createWorkspaceFeedback(
       },
     });
 
-    await classifyWorkspaceFeedback(workspaceId, createdFeedback.id);
+    const [, embedded] = await Promise.all([
+      classifyWorkspaceFeedback(workspaceId, createdFeedback.id),
+      embedWorkspaceFeedback(workspaceId, createdFeedback.id),
+    ]);
+
+    if (!embedded) {
+      console.error("Feedback embedding failed after ingestion.", {
+        workspaceId,
+        feedbackId: createdFeedback.id,
+      });
+    }
 
     const feedback = await db.feedback.findFirst({
       where: {

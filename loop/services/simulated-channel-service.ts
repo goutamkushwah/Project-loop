@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@/lib/db";
 import { classifyWorkspaceFeedbackBatch } from "@/services/feedback-classification-service";
+import { embedWorkspaceFeedbackBatch } from "@/services/embedding-service";
 import {
   getSimulatedChannelOption,
   type SimulatedChannelKey,
@@ -58,10 +59,11 @@ export async function importSimulatedChannel(
     );
   }
 
-  const classification = await classifyWorkspaceFeedbackBatch(
-    workspaceId,
-    preparedRows.map((row) => row.id),
-  );
+  const feedbackIds = preparedRows.map((row) => row.id);
+  const [classification, embedding] = await Promise.all([
+    classifyWorkspaceFeedbackBatch(workspaceId, feedbackIds),
+    embedWorkspaceFeedbackBatch(workspaceId, feedbackIds),
+  ]);
   const timestamps = preparedRows.map((row) => row.createdAt.getTime());
 
   return {
@@ -73,6 +75,7 @@ export async function importSimulatedChannel(
     importedRows: result.count,
     classificationQueuedRows: classification.skippedRows,
     classification,
+    embedding,
     importedAt: importedAt.toISOString(),
     oldestFeedbackAt: new Date(Math.min(...timestamps)).toISOString(),
     newestFeedbackAt: new Date(Math.max(...timestamps)).toISOString(),

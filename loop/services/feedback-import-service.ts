@@ -6,6 +6,7 @@ import type { FeedbackChannel, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { classifyWorkspaceFeedbackBatch } from "@/services/feedback-classification-service";
+import { embedWorkspaceFeedbackBatch } from "@/services/embedding-service";
 import { MAX_RETURNED_IMPORT_ERRORS } from "@/lib/feedback-import-constants";
 import type {
   FeedbackCsvImportError,
@@ -199,10 +200,10 @@ export async function importWorkspaceFeedbackCsv(
   const insertedFeedbackIds = preparedRows
     .filter((prepared) => !failedRows.has(prepared.row.rowNumber))
     .map((prepared) => prepared.data.id);
-  const classification = await classifyWorkspaceFeedbackBatch(
-    workspaceId,
-    insertedFeedbackIds,
-  );
+  const [classification, embedding] = await Promise.all([
+    classifyWorkspaceFeedbackBatch(workspaceId, insertedFeedbackIds),
+    embedWorkspaceFeedbackBatch(workspaceId, insertedFeedbackIds),
+  ]);
   const returnedErrors = errors.slice(0, MAX_RETURNED_IMPORT_ERRORS);
 
   return {
@@ -212,6 +213,7 @@ export async function importWorkspaceFeedbackCsv(
     failedRows: failedRows.size,
     classificationQueuedRows: classification.skippedRows,
     classification,
+    embedding,
     errors: returnedErrors,
     truncatedErrorCount: Math.max(0, errors.length - returnedErrors.length),
   };

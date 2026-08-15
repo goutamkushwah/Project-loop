@@ -241,7 +241,7 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
         disabled={!file || isUploading}
         className="inline-flex w-full items-center justify-center rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isUploading ? "Validating, importing, and classifying…" : "Import CSV"}
+        {isUploading ? "Validating, importing, classifying, and indexing…" : "Import CSV"}
       </button>
 
       {summary ? (
@@ -290,6 +290,16 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
               <dd className="mt-1 text-xl font-black text-red-900">{summary.failedRows}</dd>
             </div>
           </dl>
+
+          <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-bold text-blue-900">Semantic search index</p>
+            <p className="mt-2 text-sm leading-6 text-blue-900">
+              {summary.embedding.completedRows} of {summary.embedding.requestedRows} imported feedback items received {summary.embedding.dimensions}-dimension Gemini embeddings.
+              {summary.embedding.failedRows > 0
+                ? ` ${summary.embedding.failedRows} items can be recovered with the embedding backfill command.`
+                : " All imported feedback is ready for Ask LOOP retrieval."}
+            </p>
+          </div>
 
           <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
             <p className="text-sm font-bold text-violet-900">Gemini classification</p>
