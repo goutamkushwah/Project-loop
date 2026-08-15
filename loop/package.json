@@ -26,7 +26,9 @@
     "seed": "tsx prisma/seed.ts",
     "ai:verify": "tsx scripts/verify-ai.ts",
     "ai:backfill": "tsx scripts/backfill-classification.ts",
-    "db:seed:classified": "npm run db:seed && npm run ai:backfill"
+    "db:seed:classified": "npm run db:seed && npm run ai:backfill",
+    "ai:backfill-embeddings": "tsx scripts/backfill-embeddings.ts",
+    "db:seed:ready": "npm run db:seed:classified && npm run ai:backfill-embeddings"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

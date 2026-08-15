@@ -1,172 +1,85 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-
-import { db } from "@/lib/db";
-import { requirePagePermission } from "@/lib/authorization";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { askLoopRequestSchema } from "@/lib/ask-validation";
+import { authorizeApi } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/rbac";
-import { embedQuery } from "@/services/embedding-service";
+import { isTrustedMutationRequest } from "@/lib/request-security";
+import { askLoop, AskLoopServiceError } from "@/services/ask-loop-service";
 
-const GEMINI_CHAT_MODEL = "gemini-3.5-flash";
-const TOP_K = 6;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
-const askSchema = z.object({
-  question: z.string().min(3).max(500),
-});
+const MAX_REQUEST_BYTES = 8 * 1024;
 
-async function askGemini(question: string, context: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-
-  const prompt = `You are Ask LOOP, an assistant answering questions about customer feedback for a product team.
-Use ONLY the feedback excerpts below to answer. If the excerpts don't contain the answer, say so honestly.
-Cite specific feedback by its [n] number when you use it.
-
-Feedback excerpts:
-${context}
-
-Question: ${question}
-
-Answer:`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }),
-    },
-  );
-
-  if (!res.ok) {
-    throw new Error(
-      `Gemini chat generation failed: ${res.status} ${await res.text()}`,
+export async function POST(request: Request) {
+  if (!isTrustedMutationRequest(request)) {
+    return apiError(
+      "CROSS_SITE_REQUEST_BLOCKED",
+      "The request origin could not be verified.",
+      403,
     );
   }
 
-  const data = await res.json();
+  const authorization = await authorizeApi(PERMISSIONS.ASK_LOOP_QUERY);
 
-  return (
-    data.candidates?.[0]?.content?.parts?.[0]?.text ??
-    "No answer generated."
-  );
-}
+  if (!authorization.ok) {
+    return authorization.response;
+  }
 
-export async function POST(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return apiError(
+      "INVALID_CONTENT_TYPE",
+      "Content-Type must be application/json.",
+      415,
+    );
+  }
+
+  let rawBody: string;
+
   try {
-    const user = await requirePagePermission(PERMISSIONS.DASHBOARD_READ);
+    rawBody = await request.text();
+  } catch {
+    return apiError("INVALID_JSON", "Request body could not be read.", 400);
+  }
 
-    const body = await request.json();
-    const parsed = askSchema.safeParse(body);
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+    return apiError("PAYLOAD_TOO_LARGE", "Ask LOOP request is too large.", 413);
+  }
 
-    if (!parsed.success) {
-      console.log("ASK VALIDATION FAILED:", parsed.error.flatten());
+  let payload: unknown;
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: parsed.error.flatten(),
-        },
-        { status: 400 },
-      );
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return apiError("INVALID_JSON", "Request body must contain valid JSON.", 400);
+  }
+
+  const parsedInput = askLoopRequestSchema.safeParse(payload);
+
+  if (!parsedInput.success) {
+    return apiError(
+      "VALIDATION_ERROR",
+      "Review the Ask LOOP question.",
+      422,
+      parsedInput.error.flatten().fieldErrors,
+    );
+  }
+
+  try {
+    const answer = await askLoop(authorization.user.workspaceId, parsedInput.data);
+    return apiSuccess({ answer });
+  } catch (error: unknown) {
+    if (error instanceof AskLoopServiceError) {
+      return apiError(error.code, error.message, error.status);
     }
 
-    const { question } = parsed.data;
-    const workspaceId = user.workspaceId;
-
-    console.log("ASK QUESTION:", question, "WORKSPACE:", workspaceId);
-
-    const queryVector = await embedQuery(question);
-    const vectorLiteral = `[${queryVector.join(",")}]`;
-
-    const matches = await db.$queryRaw<
-      {
-        feedbackId: string;
-        content: string;
-        channel: string;
-        distance: number;
-      }[]
-    >`
-      SELECT
-        f.id as "feedbackId",
-        f.content,
-        f.channel::text as channel,
-        e.vector <=> ${vectorLiteral}::vector as distance
-      FROM "Embedding" e
-      JOIN "Feedback" f ON f.id = e."feedbackId"
-      WHERE e."workspaceId" = ${workspaceId}::uuid
-      ORDER BY e.vector <=> ${vectorLiteral}::vector
-      LIMIT ${TOP_K}
-    `;
-
-    console.log("ASK MATCHES FOUND:", matches.length);
-
-    if (matches.length === 0) {
-      return NextResponse.json({
-        success: true,
-        answer: "No feedback has been embedded yet, so I can't answer that.",
-        sources: [],
-      });
-    }
-
-    const context = matches
-      .map((m, i) => `[${i + 1}] (${m.channel}) ${m.content}`)
-      .join("\n\n");
-
-    const answer = await askGemini(question, context);
-
-    console.log("ASK ANSWER GENERATED");
-
-    await db.searchHistory.create({
-      data: {
-        workspaceId,
-        userId: user.id,
-        question,
-        answer,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      answer,
-      sources: matches.map((m, i) => ({
-        index: i + 1,
-        feedbackId: m.feedbackId,
-        channel: m.channel,
-        excerpt: m.content.slice(0, 200),
-        similarity: (1 - m.distance).toFixed(3),
-      })),
-    });
-  } catch (error) {
-    console.error("ASK FAILED:", error);
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unknown error while answering question";
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      {
-        status: 500,
-      },
+    console.error("Ask LOOP request failed.", error);
+    return apiError(
+      "ASK_LOOP_FAILED",
+      "Ask LOOP could not complete the request. Please try again.",
+      500,
     );
   }
 }

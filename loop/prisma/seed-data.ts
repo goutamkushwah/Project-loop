@@ -1,8 +1,8 @@
 import { FeedbackChannel, UserRole } from "@prisma/client";
 
 export const DEMO_WORKSPACE = {
-  name: "Zidio Development",
-  slug: "zidio-development",
+  name: "Acme-Cloud",
+  slug: "acme-cloud",
 } as const;
 
 export const DEMO_USERS = [

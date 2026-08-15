@@ -1,5 +1,6 @@
 import type { FeedbackChannelValue } from "@/lib/feedback-catalog";
 import type { FeedbackClassificationBatchSummary } from "@/types/feedback-classification";
+import type { FeedbackEmbeddingBatchSummary } from "@/types/embedding";
 
 export type FeedbackCsvImportErrorCode =
   | "COLUMN_COUNT_MISMATCH"
@@ -38,6 +39,7 @@ export type FeedbackCsvImportSummary = {
   failedRows: number;
   classificationQueuedRows: number;
   classification: FeedbackClassificationBatchSummary;
+  embedding: FeedbackEmbeddingBatchSummary;
   errors: FeedbackCsvImportError[];
   truncatedErrorCount: number;
 };

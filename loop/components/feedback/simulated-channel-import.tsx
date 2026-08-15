@@ -86,7 +86,7 @@ export function SimulatedChannelImport({
           <p className="mt-1 leading-6">
             {summary.classification.completedRows} classified, {summary.classification.reviewRequiredRows}{" "}
             require review, {summary.classification.failedRows} failed classification, and{" "}
-            {summary.classification.skippedRows} remain queued.
+            {summary.classification.skippedRows} remain queued. {summary.embedding.completedRows} of {summary.embedding.requestedRows} were added to the semantic index.
           </p>
         </div>
       ) : null}
@@ -126,7 +126,7 @@ export function SimulatedChannelImport({
                   className="inline-flex shrink-0 items-center justify-center rounded-xl bg-loop-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isImporting
-                    ? "Importing and classifying…"
+                    ? "Importing, classifying, and indexing…"
                     : anotherSourceIsImporting
                       ? "Waiting…"
                       : "Pull feedback"}

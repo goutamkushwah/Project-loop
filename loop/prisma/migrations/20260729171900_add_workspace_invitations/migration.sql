@@ -86,6 +86,19 @@ CREATE TRIGGER "WorkspaceInvitation_creator_workspace_guard"
 BEFORE INSERT OR UPDATE ON "WorkspaceInvitation"
 FOR EACH ROW EXECUTE FUNCTION enforce_invitation_creator_workspace();
 
+CREATE OR REPLACE FUNCTION prevent_workspace_reassignment()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF OLD."workspaceId" <> NEW."workspaceId" THEN
+    RAISE EXCEPTION 'Workspace ownership cannot be reassigned';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
 -- Tenant ownership cannot be reassigned after creation.
 CREATE TRIGGER "WorkspaceInvitation_workspace_immutable"
 BEFORE UPDATE OF "workspaceId" ON "WorkspaceInvitation"
