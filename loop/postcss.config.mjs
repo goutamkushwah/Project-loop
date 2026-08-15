@@ -1,4 +1,5 @@
 const config = {
+  serverExternalPackages: ["pdfkit"],
   plugins: {
     tailwindcss: {},
     autoprefixer: {},

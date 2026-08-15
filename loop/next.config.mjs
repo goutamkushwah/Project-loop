@@ -16,6 +16,9 @@ const securityHeaders = [
 const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+
+  serverExternalPackages: ["pdfkit"],
+
   async headers() {
     return [
       {
