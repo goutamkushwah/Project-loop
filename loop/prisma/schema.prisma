@@ -22,6 +22,7 @@ model Workspace {
   themes         Theme[]
   users          User[]
   invitations    WorkspaceInvitation[]
+  searchHistory  SearchHistory[]
 
   @@index([createdAt])
 }
@@ -160,6 +161,17 @@ model Report {
   @@index([workspaceId, periodStart, periodEnd])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([generatedById])
+}
+
+model SearchHistory {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  query       String
+  workspaceId String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 enum UserRole {
