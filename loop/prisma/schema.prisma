@@ -22,6 +22,7 @@ model Workspace {
   themes         Theme[]
   users          User[]
   invitations    WorkspaceInvitation[]
+  searchHistory  SearchHistory[]
 
   @@index([createdAt])
 }
@@ -80,10 +81,10 @@ model Feedback {
   classificationStatus    ClassificationStatus @default(PENDING)
   classificationAttempts  Int                  @default(0)
   classificationError     String?
-  classifiedAt            DateTime?            @db.Timestamptz(3)
-  status                  FeedbackStatus       @default(NEW)
-  createdAt               DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime             @updatedAt @db.Timestamptz(3)
+  classifiedAt            DateTime?             @db.Timestamptz(3)
+  status                  FeedbackStatus        @default(NEW)
+  createdAt               DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime              @updatedAt @db.Timestamptz(3)
   workspaceId             String               @db.Uuid
   embedding               Embedding?
   workspace               Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -160,6 +161,17 @@ model Report {
   @@index([workspaceId, periodStart, periodEnd])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([generatedById])
+}
+
+model SearchHistory {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String    @db.Uuid
+  query       String
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 enum UserRole {
