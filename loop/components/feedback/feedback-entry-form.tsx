@@ -205,8 +205,8 @@ export function FeedbackEntryForm({ onCreated }: FeedbackEntryFormProps) {
       </div>
 
       <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-900">
-        New items are saved with a <strong>PENDING</strong> classification state until automated
-        classification is applied server-side.
+        New items are classified with <strong>Gemini</strong> immediately after the database insert.
+        Invalid structured output is retried once and then marked for manual review.
       </div>
 
       <button
@@ -214,7 +214,7 @@ export function FeedbackEntryForm({ onCreated }: FeedbackEntryFormProps) {
         disabled={isSubmitting}
         className="inline-flex w-full items-center justify-center rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? "Saving feedback…" : "Add feedback"}
+        {isSubmitting ? "Saving and classifying…" : "Add feedback"}
       </button>
     </form>
   );

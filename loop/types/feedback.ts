@@ -42,7 +42,11 @@ export type FeedbackListItem = {
   sentimentScore: number | null;
   featureArea: string | null;
   themes: FeedbackThemeAssignment[];
+  classificationRationale: string | null;
   classificationStatus: ClassificationStatusValue;
+  classificationAttempts: number;
+  classificationError: string | null;
+  classifiedAt: string | null;
   status: FeedbackStatusValue;
   createdAt: string;
   updatedAt: string;

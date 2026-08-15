@@ -1,4 +1,4 @@
-
+import "server-only";
 
 export const FEEDBACK_CLASSIFICATION_SYSTEM_INSTRUCTION = `You are LOOP's customer-feedback classification engine.
 
@@ -16,24 +16,57 @@ Classification rules:
 - rationale must be one concise sentence grounded only in the feedback text.
 - Do not include markdown, commentary, or fields outside the requested schema.`;
 
+export const FEEDBACK_BATCH_CLASSIFICATION_SYSTEM_INSTRUCTION = `${FEEDBACK_CLASSIFICATION_SYSTEM_INSTRUCTION}
+
+Batch rules:
+- Return exactly one classification object for every supplied feedback item.
+- Copy each feedbackId exactly as supplied. Never alter, omit, or invent an identifier.
+- Do not merge multiple feedback items into one classification.`;
+
 type BuildFeedbackClassificationPromptInput = {
   content: string;
   existingThemeNames: readonly string[];
 };
 
+type BuildFeedbackBatchClassificationPromptInput = {
+  items: readonly {
+    feedbackId: string;
+    content: string;
+  }[];
+  existingThemeNames: readonly string[];
+};
+
+function serializedThemeList(existingThemeNames: readonly string[]): string {
+  const themes = existingThemeNames.length > 0 ? existingThemeNames : ["No existing themes yet"];
+  return JSON.stringify(themes);
+}
+
 export function buildFeedbackClassificationPrompt({
   content,
   existingThemeNames,
 }: BuildFeedbackClassificationPromptInput): string {
-  const themes = existingThemeNames.length > 0 ? existingThemeNames : ["No existing themes yet"];
-
   return [
     "Classify the following customer feedback for LOOP.",
     "",
     "Existing workspace themes:",
-    JSON.stringify(themes),
+    serializedThemeList(existingThemeNames),
     "",
     "Feedback:",
     content,
+  ].join("\n");
+}
+
+export function buildFeedbackBatchClassificationPrompt({
+  items,
+  existingThemeNames,
+}: BuildFeedbackBatchClassificationPromptInput): string {
+  return [
+    "Classify every customer-feedback item in this batch for LOOP.",
+    "",
+    "Existing workspace themes:",
+    serializedThemeList(existingThemeNames),
+    "",
+    "Feedback batch:",
+    JSON.stringify(items),
   ].join("\n");
 }

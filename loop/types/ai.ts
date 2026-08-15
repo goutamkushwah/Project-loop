@@ -15,6 +15,10 @@ export type FeedbackClassification = {
   rationale: string;
 };
 
+export type FeedbackBatchClassificationItem = FeedbackClassification & {
+  feedbackId: string;
+};
+
 export type AiTokenUsage = {
   promptTokens: number | null;
   outputTokens: number | null;
@@ -42,3 +46,25 @@ export type FeedbackClassificationReviewRequired = {
 export type FeedbackClassificationResult =
   | FeedbackClassificationSuccess
   | FeedbackClassificationReviewRequired;
+
+export type FeedbackBatchClassificationSuccess = {
+  ok: true;
+  provider: AiProvider;
+  model: string;
+  attempts: number;
+  classifications: FeedbackBatchClassificationItem[];
+  usage: AiTokenUsage;
+};
+
+export type FeedbackBatchClassificationReviewRequired = {
+  ok: false;
+  provider: AiProvider;
+  model: string;
+  attempts: number;
+  reason: "INVALID_MODEL_OUTPUT";
+  message: string;
+};
+
+export type FeedbackBatchClassificationResult =
+  | FeedbackBatchClassificationSuccess
+  | FeedbackBatchClassificationReviewRequired;

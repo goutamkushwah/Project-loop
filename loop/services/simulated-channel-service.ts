@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@/lib/db";
+import { classifyWorkspaceFeedbackBatch } from "@/services/feedback-classification-service";
 import {
   getSimulatedChannelOption,
   type SimulatedChannelKey,
@@ -57,6 +58,10 @@ export async function importSimulatedChannel(
     );
   }
 
+  const classification = await classifyWorkspaceFeedbackBatch(
+    workspaceId,
+    preparedRows.map((row) => row.id),
+  );
   const timestamps = preparedRows.map((row) => row.createdAt.getTime());
 
   return {
@@ -66,7 +71,8 @@ export async function importSimulatedChannel(
     channel: source.channel,
     totalRows: preparedRows.length,
     importedRows: result.count,
-    classificationQueuedRows: result.count,
+    classificationQueuedRows: classification.skippedRows,
+    classification,
     importedAt: importedAt.toISOString(),
     oldestFeedbackAt: new Date(Math.min(...timestamps)).toISOString(),
     newestFeedbackAt: new Date(Math.max(...timestamps)).toISOString(),

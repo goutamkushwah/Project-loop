@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type InboxPageProps = {
-  searchParams: Promise<{
+  searchParams?: {
     page?: string | string[];
     search?: string | string[];
     channel?: string | string[];
@@ -27,7 +27,7 @@ type InboxPageProps = {
     status?: string | string[];
     dateFrom?: string | string[];
     dateTo?: string | string[];
-  }>;
+  };
 };
 
 function firstSearchParam(value: string | string[] | undefined): string | undefined {
@@ -36,22 +36,18 @@ function firstSearchParam(value: string | string[] | undefined): string | undefi
 
 export default async function InboxPage({ searchParams }: InboxPageProps) {
   const user = await requirePagePermission(PERMISSIONS.FEEDBACK_READ);
-
   const canCreate = hasPermission(user.role, PERMISSIONS.FEEDBACK_CREATE);
   const canUpdate = hasPermission(user.role, PERMISSIONS.FEEDBACK_UPDATE);
-
-  const params = await searchParams;
-
   const parsedQuery = feedbackListQuerySchema.safeParse({
-    page: firstSearchParam(params?.page),
+    page: firstSearchParam(searchParams?.page),
     pageSize: 10,
-    search: firstSearchParam(params?.search) ?? "",
-    channel: firstSearchParam(params?.channel),
-    sentiment: firstSearchParam(params?.sentiment),
-    themeId: firstSearchParam(params?.themeId),
-    status: firstSearchParam(params?.status),
-    dateFrom: firstSearchParam(params?.dateFrom),
-    dateTo: firstSearchParam(params?.dateTo),
+    search: firstSearchParam(searchParams?.search) ?? "",
+    channel: firstSearchParam(searchParams?.channel),
+    sentiment: firstSearchParam(searchParams?.sentiment),
+    themeId: firstSearchParam(searchParams?.themeId),
+    status: firstSearchParam(searchParams?.status),
+    dateFrom: firstSearchParam(searchParams?.dateFrom),
+    dateTo: firstSearchParam(searchParams?.dateTo),
     sortOrder: "desc",
   });
   const query = parsedQuery.success
@@ -77,15 +73,15 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="mb-8 border-b border-slate-200 pb-8">
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
-          Core application · Day 9
+          AI integration · Day 12
         </p>
         <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
           Feedback inbox
         </h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-          Combine full-text search with channel, sentiment, theme, workflow-status, and UTC date-range
-          filters. Every count and page remains isolated to the authenticated {user.workspace.name}
-          workspace.
+          Search and triage feedback while Gemini classification now runs on ingestion, stores sentiment,
+          feature area, rationale, and theme assignments, and supports manual re-classification. Every
+          query and mutation remains isolated to the authenticated {user.workspace.name} workspace.
         </p>
       </div>
 

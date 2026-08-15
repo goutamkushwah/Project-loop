@@ -84,7 +84,9 @@ export function SimulatedChannelImport({
             {summary.sourceName} imported {summary.importedRows} records.
           </p>
           <p className="mt-1 leading-6">
-            Every record is NEW and queued with a PENDING classification state.
+            {summary.classification.completedRows} classified, {summary.classification.reviewRequiredRows}{" "}
+            require review, {summary.classification.failedRows} failed classification, and{" "}
+            {summary.classification.skippedRows} remain queued.
           </p>
         </div>
       ) : null}
@@ -124,7 +126,7 @@ export function SimulatedChannelImport({
                   className="inline-flex shrink-0 items-center justify-center rounded-xl bg-loop-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isImporting
-                    ? "Importing…"
+                    ? "Importing and classifying…"
                     : anotherSourceIsImporting
                       ? "Waiting…"
                       : "Pull feedback"}

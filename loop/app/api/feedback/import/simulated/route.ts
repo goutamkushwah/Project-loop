@@ -7,6 +7,7 @@ import { importSimulatedChannel } from "@/services/simulated-channel-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const MAX_REQUEST_BYTES = 4 * 1024;
 

@@ -16,9 +16,11 @@ type FeedbackListProps = {
   canUpdate: boolean;
   isLoading: boolean;
   updatingFeedbackId: string | null;
+  classifyingFeedbackId: string | null;
   error: string | null;
   onPageChange: (page: number) => void;
   onStatusChange: (feedbackId: string, status: "REVIEWED" | "ACTIONED") => void;
+  onClassify: (feedbackId: string) => void;
   onRetry: () => void;
 };
 
@@ -120,14 +122,22 @@ function hasActiveCriteria(page: FeedbackPage): boolean {
   );
 }
 
+function classificationActionLabel(
+  status: FeedbackPage["items"][number]["classificationStatus"],
+): string {
+  return status === "COMPLETED" ? "Re-classify" : "Classify now";
+}
+
 export function FeedbackList({
   page,
   canUpdate,
   isLoading,
   updatingFeedbackId,
+  classifyingFeedbackId,
   error,
   onPageChange,
   onStatusChange,
+  onClassify,
   onRetry,
 }: FeedbackListProps) {
   if (error) {
@@ -174,6 +184,8 @@ export function FeedbackList({
     page.pagination.page * page.pagination.pageSize,
     page.pagination.totalItems,
   );
+  const anyMutationInProgress =
+    updatingFeedbackId !== null || classifyingFeedbackId !== null;
 
   return (
     <div aria-busy={isLoading} className={isLoading ? "opacity-60" : undefined}>
@@ -190,7 +202,8 @@ export function FeedbackList({
       <ul className="space-y-4" aria-label="Workspace feedback">
         {page.items.map((feedback) => {
           const nextAction = nextWorkflowAction(feedback.status);
-          const isUpdating = updatingFeedbackId === feedback.id;
+          const isUpdatingStatus = updatingFeedbackId === feedback.id;
+          const isClassifying = classifyingFeedbackId === feedback.id;
 
           return (
             <li
@@ -208,6 +221,11 @@ export function FeedbackList({
                         className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset ${sentimentClassName(
                           feedback.sentiment,
                         )}`}
+                        title={
+                          feedback.sentimentScore === null
+                            ? undefined
+                            : `Sentiment score: ${feedback.sentimentScore.toFixed(3)}`
+                        }
                       >
                         {getFeedbackSentimentLabel(feedback.sentiment)}
                       </span>
@@ -232,6 +250,24 @@ export function FeedbackList({
                     {feedback.content}
                   </p>
 
+                  {feedback.featureArea || feedback.classificationRationale ? (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      {feedback.featureArea ? (
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Feature area
+                          <span className="ml-2 normal-case tracking-normal text-slate-800">
+                            {feedback.featureArea}
+                          </span>
+                        </p>
+                      ) : null}
+                      {feedback.classificationRationale ? (
+                        <p className="mt-2 text-sm leading-6 text-slate-700">
+                          {feedback.classificationRationale}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {feedback.themes.length > 0 ? (
                     <ul className="mt-4 flex flex-wrap gap-2" aria-label="Assigned feedback themes">
                       {feedback.themes.map((theme) => (
@@ -250,14 +286,37 @@ export function FeedbackList({
                       ))}
                     </ul>
                   ) : null}
+
+                  {feedback.classificationError ? (
+                    <div
+                      role={feedback.classificationStatus === "FAILED" ? "alert" : "status"}
+                      className={`mt-4 rounded-xl border px-4 py-3 text-sm leading-6 ${
+                        feedback.classificationStatus === "FAILED"
+                          ? "border-red-200 bg-red-50 text-red-800"
+                          : "border-amber-200 bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      {feedback.classificationError}
+                    </div>
+                  ) : null}
                 </div>
 
-                <time
-                  dateTime={feedback.createdAt}
-                  className="shrink-0 text-xs font-medium text-slate-500"
-                >
-                  {dateFormatter.format(new Date(feedback.createdAt))}
-                </time>
+                <div className="shrink-0 text-left sm:text-right">
+                  <time
+                    dateTime={feedback.createdAt}
+                    className="block text-xs font-medium text-slate-500"
+                  >
+                    {dateFormatter.format(new Date(feedback.createdAt))}
+                  </time>
+                  {feedback.classifiedAt ? (
+                    <time
+                      dateTime={feedback.classifiedAt}
+                      className="mt-1 block text-xs text-slate-400"
+                    >
+                      Classified {dateFormatter.format(new Date(feedback.classifiedAt))}
+                    </time>
+                  ) : null}
+                </div>
               </div>
 
               {feedback.customerLabel || feedback.sourceRef ? (
@@ -285,25 +344,55 @@ export function FeedbackList({
                 </dl>
               ) : null}
 
-              <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs leading-5 text-slate-500">
-                  Workflow: New → Reviewed → Actioned
-                </p>
+              <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs leading-5 text-slate-500">
+                    Workflow: New → Reviewed → Actioned
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Classification attempts: {feedback.classificationAttempts}
+                  </p>
+                </div>
 
-                {canUpdate && nextAction ? (
-                  <button
-                    type="button"
-                    onClick={() => onStatusChange(feedback.id, nextAction.target)}
-                    disabled={isLoading || isUpdating || updatingFeedbackId !== null}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isUpdating ? "Updating…" : nextAction.label}
-                  </button>
-                ) : feedback.status === "ACTIONED" ? (
-                  <span className="text-xs font-bold text-emerald-700">Workflow complete</span>
-                ) : (
-                  <span className="text-xs font-medium text-slate-500">Read-only status</span>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {canUpdate ? (
+                    feedback.classificationStatus === "PROCESSING" ? (
+                      <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800 ring-1 ring-inset ring-blue-200">
+                        Classification in progress
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onClassify(feedback.id)}
+                        disabled={isLoading || anyMutationInProgress}
+                        className="rounded-xl border border-loop-200 bg-loop-50 px-4 py-2 text-sm font-bold text-loop-800 transition hover:border-loop-300 hover:bg-loop-100 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isClassifying
+                          ? "Classifying…"
+                          : classificationActionLabel(feedback.classificationStatus)}
+                      </button>
+                    )
+                  ) : null}
+
+                  {canUpdate && nextAction ? (
+                    <button
+                      type="button"
+                      onClick={() => onStatusChange(feedback.id, nextAction.target)}
+                      disabled={isLoading || anyMutationInProgress}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isUpdatingStatus ? "Updating…" : nextAction.label}
+                    </button>
+                  ) : feedback.status === "ACTIONED" ? (
+                    <span className="inline-flex items-center px-2 text-xs font-bold text-emerald-700">
+                      Workflow complete
+                    </span>
+                  ) : !canUpdate ? (
+                    <span className="inline-flex items-center px-2 text-xs font-medium text-slate-500">
+                      Read-only status
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </li>
           );
@@ -317,7 +406,7 @@ export function FeedbackList({
         <button
           type="button"
           onClick={() => onPageChange(page.pagination.page - 1)}
-          disabled={isLoading || page.pagination.page <= 1}
+          disabled={isLoading || page.pagination.page <= 1 || anyMutationInProgress}
           className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
@@ -330,7 +419,11 @@ export function FeedbackList({
         <button
           type="button"
           onClick={() => onPageChange(page.pagination.page + 1)}
-          disabled={isLoading || page.pagination.page >= page.pagination.totalPages}
+          disabled={
+            isLoading ||
+            page.pagination.page >= page.pagination.totalPages ||
+            anyMutationInProgress
+          }
           className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Next

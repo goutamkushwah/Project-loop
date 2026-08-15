@@ -24,7 +24,9 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "ai:verify": "tsx scripts/verify-ai.ts"
+    "ai:verify": "tsx scripts/verify-ai.ts",
+    "ai:backfill": "tsx scripts/backfill-classification.ts",
+    "db:seed:classified": "npm run db:seed && npm run ai:backfill"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

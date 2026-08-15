@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { FeedbackCsvUpload } from "@/components/feedback/feedback-csv-upload";
 import { FeedbackEntryForm } from "@/components/feedback/feedback-entry-form";
@@ -15,6 +16,7 @@ import type {
   FeedbackStatusUpdateResult,
   FeedbackThemeOption,
 } from "@/types/feedback";
+import type { FeedbackClassificationRunResult } from "@/types/feedback-classification";
 import type { FeedbackCsvImportSummary } from "@/types/feedback-import";
 import type { SimulatedChannelImportSummary } from "@/types/simulated-channel";
 
@@ -102,20 +104,63 @@ function updateInboxUrl(page: number, query: FeedbackQueryState): void {
   window.history.replaceState(null, "", `${url.pathname}${url.search}`);
 }
 
+function classificationNotice(status: FeedbackListItem["classificationStatus"]): string {
+  switch (status) {
+    case "COMPLETED":
+      return "classified successfully";
+    case "REVIEW_REQUIRED":
+      return "saved but requires manual classification review";
+    case "FAILED":
+      return "saved but automatic classification failed";
+    case "PROCESSING":
+      return "saved and is being classified";
+    case "PENDING":
+      return "saved and queued for classification";
+  }
+}
+
+function mergeThemeOptions(
+  current: FeedbackThemeOption[],
+  feedbackItems: readonly FeedbackListItem[],
+): FeedbackThemeOption[] {
+  const byId = new Map(current.map((theme) => [theme.id, theme]));
+
+  feedbackItems.forEach((feedback) => {
+    feedback.themes.forEach((theme) => {
+      byId.set(theme.id, {
+        id: theme.id,
+        name: theme.name,
+        color: theme.color,
+      });
+    });
+  });
+
+  return Array.from(byId.values()).sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+}
+
 export function FeedbackWorkspace({
   initialPage,
   themeOptions,
   canCreate,
   canUpdate,
 }: FeedbackWorkspaceProps) {
+  const router = useRouter();
   const [page, setPage] = useState(initialPage);
+  const [availableThemeOptions, setAvailableThemeOptions] = useState(themeOptions);
   const [draftQuery, setDraftQuery] = useState<FeedbackQueryState>(initialPage.query);
   const [ingestionMode, setIngestionMode] = useState<IngestionMode>("single");
   const [isLoading, setIsLoading] = useState(false);
   const [updatingFeedbackId, setUpdatingFeedbackId] = useState<string | null>(null);
+  const [classifyingFeedbackId, setClassifyingFeedbackId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAvailableThemeOptions(themeOptions);
+  }, [themeOptions]);
 
   async function loadPage(nextPage: number, requestedQuery = page.query) {
     const safePage = Math.max(1, nextPage);
@@ -148,6 +193,7 @@ export function FeedbackWorkspace({
 
       setPage(result.data);
       setDraftQuery(result.data.query);
+      setAvailableThemeOptions((current) => mergeThemeOptions(current, result.data.items));
       updateInboxUrl(result.data.pagination.page, result.data.query);
     } catch {
       setLoadError("Feedback is temporarily unavailable. Please try again.");
@@ -163,7 +209,12 @@ export function FeedbackWorkspace({
   }
 
   async function handleCreated(feedback: FeedbackListItem) {
-    setNotice(`Feedback from ${feedback.customerLabel ?? "the selected channel"} was saved.`);
+    setAvailableThemeOptions((current) => mergeThemeOptions(current, [feedback]));
+    setNotice(
+      `Feedback from ${feedback.customerLabel ?? "the selected channel"} was ${classificationNotice(
+        feedback.classificationStatus,
+      )}.`,
+    );
     await resetInboxAfterIngestion();
   }
 
@@ -171,16 +222,18 @@ export function FeedbackWorkspace({
     setNotice(
       `${summary.importedRows.toLocaleString()} CSV row${
         summary.importedRows === 1 ? " was" : "s were"
-      } imported and queued for classification.`,
+      } imported: ${summary.classification.completedRows.toLocaleString()} classified, ${summary.classification.reviewRequiredRows.toLocaleString()} require review, and ${summary.classification.failedRows.toLocaleString()} failed classification.`,
     );
     await resetInboxAfterIngestion();
+    router.refresh();
   }
 
   async function handleSimulatedImport(summary: SimulatedChannelImportSummary) {
     setNotice(
-      `${summary.sourceName} added ${summary.importedRows.toLocaleString()} realistic records to this workspace.`,
+      `${summary.sourceName} added ${summary.importedRows.toLocaleString()} records: ${summary.classification.completedRows.toLocaleString()} classified, ${summary.classification.reviewRequiredRows.toLocaleString()} require review, and ${summary.classification.failedRows.toLocaleString()} failed classification.`,
     );
     await resetInboxAfterIngestion();
+    router.refresh();
   }
 
   async function handleStatusChange(
@@ -237,6 +290,63 @@ export function FeedbackWorkspace({
     }
   }
 
+  async function handleClassification(feedbackId: string) {
+    setClassifyingFeedbackId(feedbackId);
+    setActionError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/feedback/${feedbackId}/classify`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      const result = (await response.json()) as
+        | ApiSuccessResponse<{
+            classification: FeedbackClassificationRunResult;
+            feedback: FeedbackListItem;
+          }>
+        | ApiErrorResponse;
+
+      if (!response.ok || !result.success) {
+        setActionError(
+          !result.success
+            ? result.error.message
+            : "Feedback classification could not be completed.",
+        );
+        return;
+      }
+
+      setAvailableThemeOptions((current) => mergeThemeOptions(current, [result.data.feedback]));
+      setPage((currentPage) => ({
+        ...currentPage,
+        items: currentPage.items.map((item) =>
+          item.id === result.data.feedback.id ? result.data.feedback : item,
+        ),
+      }));
+
+      switch (result.data.classification.status) {
+        case "COMPLETED":
+          setNotice("Feedback was re-classified successfully with Gemini.");
+          break;
+        case "REVIEW_REQUIRED":
+          setNotice("Gemini returned invalid structured output twice. Manual review is required.");
+          break;
+        case "FAILED":
+          setActionError(
+            result.data.classification.message ??
+              "Automatic classification failed. You can retry when Gemini is available.",
+          );
+          break;
+      }
+    } catch {
+      setActionError("Feedback classification is temporarily unavailable. Please try again.");
+    } finally {
+      setClassifyingFeedbackId(null);
+    }
+  }
+
   const ingestionHeading =
     ingestionMode === "single"
       ? "Add customer feedback"
@@ -246,10 +356,10 @@ export function FeedbackWorkspace({
 
   const ingestionDescription =
     ingestionMode === "single"
-      ? "Record one customer comment with its source channel. Content and channel are required."
+      ? "Record one customer comment with its source channel. LOOP classifies it immediately after the database insert."
       : ingestionMode === "csv"
-        ? "Validate and import up to 2,000 customer-feedback rows in one server-side operation."
-        : "Choose a local demo source to seed realistic records without calling a real third-party platform.";
+        ? "Validate, import, and classify up to 2,000 customer-feedback rows in one server-side operation."
+        : "Choose a local demo source to seed realistic records and classify them without calling a real third-party platform.";
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
@@ -329,8 +439,8 @@ export function FeedbackWorkspace({
               <p className="font-bold text-slate-900">Read-only workspace access</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Viewers can read, search, and filter workspace feedback but cannot create entries,
-                upload CSV files, pull simulated records, or change workflow status. Every mutation
-                API enforces this restriction with HTTP 403.
+                upload CSV files, pull simulated records, re-classify feedback, or change workflow
+                status. Every mutation API enforces this restriction with HTTP 403.
               </p>
             </div>
           )}
@@ -345,15 +455,15 @@ export function FeedbackWorkspace({
             </p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Search, filter, and triage</h2>
           </div>
-          <span className="w-fit rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800 ring-1 ring-inset ring-violet-200">
-            Server-side results
+          <span className="w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 ring-1 ring-inset ring-emerald-200">
+            Gemini classification active
           </span>
         </div>
 
         <FeedbackInboxToolbar
           queryValue={draftQuery}
           activeQuery={page.query}
-          themeOptions={themeOptions}
+          themeOptions={availableThemeOptions}
           totalItems={page.pagination.totalItems}
           isLoading={isLoading}
           onQueryChange={setDraftQuery}
@@ -393,6 +503,7 @@ export function FeedbackWorkspace({
           canUpdate={canUpdate}
           isLoading={isLoading}
           updatingFeedbackId={updatingFeedbackId}
+          classifyingFeedbackId={classifyingFeedbackId}
           error={loadError}
           onPageChange={(nextPage) => {
             setNotice(null);
@@ -400,6 +511,9 @@ export function FeedbackWorkspace({
           }}
           onStatusChange={(feedbackId, status) => {
             void handleStatusChange(feedbackId, status);
+          }}
+          onClassify={(feedbackId) => {
+            void handleClassification(feedbackId);
           }}
           onRetry={() => void loadPage(page.pagination.page, page.query)}
         />

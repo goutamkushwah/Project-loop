@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { FeedbackChannel, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { classifyWorkspaceFeedbackBatch } from "@/services/feedback-classification-service";
 import { MAX_RETURNED_IMPORT_ERRORS } from "@/lib/feedback-import-constants";
 import type {
   FeedbackCsvImportError,
@@ -195,6 +196,13 @@ export async function importWorkspaceFeedbackCsv(
   }
 
   const importedRows = parsedCsv.totalRows - failedRows.size;
+  const insertedFeedbackIds = preparedRows
+    .filter((prepared) => !failedRows.has(prepared.row.rowNumber))
+    .map((prepared) => prepared.data.id);
+  const classification = await classifyWorkspaceFeedbackBatch(
+    workspaceId,
+    insertedFeedbackIds,
+  );
   const returnedErrors = errors.slice(0, MAX_RETURNED_IMPORT_ERRORS);
 
   return {
@@ -202,7 +210,8 @@ export async function importWorkspaceFeedbackCsv(
     totalRows: parsedCsv.totalRows,
     importedRows,
     failedRows: failedRows.size,
-    classificationQueuedRows: importedRows,
+    classificationQueuedRows: classification.skippedRows,
+    classification,
     errors: returnedErrors,
     truncatedErrorCount: Math.max(0, errors.length - returnedErrors.length),
   };

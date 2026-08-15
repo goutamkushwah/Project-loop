@@ -3,17 +3,24 @@ import "server-only";
 import { ApiError } from "@google/genai";
 
 import {
+  buildFeedbackBatchClassificationPrompt,
   buildFeedbackClassificationPrompt,
+  FEEDBACK_BATCH_CLASSIFICATION_SYSTEM_INSTRUCTION,
   FEEDBACK_CLASSIFICATION_SYSTEM_INSTRUCTION,
 } from "@/lib/ai-prompts";
 import {
+  AI_CLASSIFICATION_BATCH_SIZE,
+  feedbackBatchClassificationJsonSchema,
+  feedbackBatchClassificationSchema,
   feedbackClassificationJsonSchema,
   feedbackClassificationSchema,
+  type FeedbackBatchClassificationOutput,
   type FeedbackClassificationOutput,
 } from "@/lib/ai-schemas";
 import { GEMINI_CLASSIFICATION_MODEL, gemini } from "@/lib/gemini";
 import type {
   AiTokenUsage,
+  FeedbackBatchClassificationResult,
   FeedbackClassificationResult,
 } from "@/types/ai";
 
@@ -25,6 +32,7 @@ export class AiProviderError extends Error {
     message: string,
     public readonly status: number | null,
     public readonly retryable: boolean,
+    public readonly attempts: number,
   ) {
     super(message);
     this.name = "AiProviderError";
@@ -36,10 +44,18 @@ type ClassifyFeedbackInput = {
   existingThemeNames: readonly string[];
 };
 
-type ParseClassificationResult =
+type ClassifyFeedbackBatchInput = {
+  items: readonly {
+    feedbackId: string;
+    content: string;
+  }[];
+  existingThemeNames: readonly string[];
+};
+
+type ParseClassificationResult<T> =
   | {
       ok: true;
-      value: FeedbackClassificationOutput;
+      value: T;
     }
   | {
       ok: false;
@@ -53,21 +69,32 @@ function stripMarkdownCodeFence(value: string): string {
   return fenced?.[1]?.trim() ?? trimmed;
 }
 
-function parseClassificationOutput(rawText: string): ParseClassificationResult {
+function parseJson(rawText: string): ParseClassificationResult<unknown> {
   const cleaned = stripMarkdownCodeFence(rawText);
 
-  let parsedJson: unknown;
-
   try {
-    parsedJson = JSON.parse(cleaned);
+    return {
+      ok: true,
+      value: JSON.parse(cleaned) as unknown,
+    };
   } catch {
     return {
       ok: false,
       message: "Gemini returned a response that was not valid JSON.",
     };
   }
+}
 
-  const validated = feedbackClassificationSchema.safeParse(parsedJson);
+function parseClassificationOutput(
+  rawText: string,
+): ParseClassificationResult<FeedbackClassificationOutput> {
+  const parsedJson = parseJson(rawText);
+
+  if (!parsedJson.ok) {
+    return parsedJson;
+  }
+
+  const validated = feedbackClassificationSchema.safeParse(parsedJson.value);
 
   if (!validated.success) {
     return {
@@ -75,6 +102,50 @@ function parseClassificationOutput(rawText: string): ParseClassificationResult {
       message: `Gemini returned JSON that did not match LOOP's classification schema: ${validated.error.issues
         .map((issue) => `${issue.path.join(".") || "response"}: ${issue.message}`)
         .join("; ")}`,
+    };
+  }
+
+  return {
+    ok: true,
+    value: validated.data,
+  };
+}
+
+function parseBatchClassificationOutput(
+  rawText: string,
+  expectedFeedbackIds: readonly string[],
+): ParseClassificationResult<FeedbackBatchClassificationOutput> {
+  const parsedJson = parseJson(rawText);
+
+  if (!parsedJson.ok) {
+    return parsedJson;
+  }
+
+  const validated = feedbackBatchClassificationSchema.safeParse(parsedJson.value);
+
+  if (!validated.success) {
+    return {
+      ok: false,
+      message: `Gemini returned JSON that did not match LOOP's batch-classification schema: ${validated.error.issues
+        .map((issue) => `${issue.path.join(".") || "response"}: ${issue.message}`)
+        .join("; ")}`,
+    };
+  }
+
+  const expectedIds = new Set(expectedFeedbackIds);
+  const returnedIds = validated.data.items.map((item) => item.feedbackId);
+  const uniqueReturnedIds = new Set(returnedIds);
+
+  if (
+    returnedIds.length !== expectedFeedbackIds.length ||
+    uniqueReturnedIds.size !== returnedIds.length ||
+    returnedIds.some((feedbackId) => !expectedIds.has(feedbackId)) ||
+    expectedFeedbackIds.some((feedbackId) => !uniqueReturnedIds.has(feedbackId))
+  ) {
+    return {
+      ok: false,
+      message:
+        "Gemini returned a batch whose feedback identifiers did not exactly match the requested records.",
     };
   }
 
@@ -100,20 +171,28 @@ function serializeUsageMetadata(
   };
 }
 
-function normalizeProviderError(error: unknown): AiProviderError {
+function normalizeProviderError(error: unknown, attempts: number): AiProviderError {
   if (error instanceof ApiError) {
-    const retryable = error.status === 408 || error.status === 429 || error.status >= 500;
+    const status = typeof error.status === "number" ? error.status : null;
+    const retryable =
+      status === 408 || status === 429 || (status !== null && status >= 500);
 
     return new AiProviderError(
       retryable
         ? "Google Gemini is temporarily unavailable."
         : "Google Gemini rejected the classification request.",
-      error.status,
+      status,
       retryable,
+      attempts,
     );
   }
 
-  return new AiProviderError("Google Gemini classification failed unexpectedly.", null, true);
+  return new AiProviderError(
+    "Google Gemini classification failed unexpectedly.",
+    null,
+    true,
+    attempts,
+  );
 }
 
 export async function classifyFeedback({
@@ -160,7 +239,78 @@ export async function classifyFeedback({
         usage: serializeUsageMetadata(response.usageMetadata),
       };
     } catch (error: unknown) {
-      const providerError = normalizeProviderError(error);
+      const providerError = normalizeProviderError(error, attempt);
+
+      if (attempt < MAX_CLASSIFICATION_ATTEMPTS && providerError.retryable) {
+        continue;
+      }
+
+      throw providerError;
+    }
+  }
+
+  return {
+    ok: false,
+    provider: PROVIDER,
+    model: GEMINI_CLASSIFICATION_MODEL,
+    attempts: MAX_CLASSIFICATION_ATTEMPTS,
+    reason: "INVALID_MODEL_OUTPUT",
+    message: lastInvalidOutputMessage,
+  };
+}
+
+export async function classifyFeedbackBatch({
+  items,
+  existingThemeNames,
+}: ClassifyFeedbackBatchInput): Promise<FeedbackBatchClassificationResult> {
+  if (items.length === 0 || items.length > AI_CLASSIFICATION_BATCH_SIZE) {
+    throw new RangeError(
+      `Gemini classification batches must contain between 1 and ${AI_CLASSIFICATION_BATCH_SIZE} items.`,
+    );
+  }
+
+  const expectedFeedbackIds = items.map((item) => item.feedbackId);
+  let lastInvalidOutputMessage = "Gemini did not return a usable batch classification.";
+
+  for (let attempt = 1; attempt <= MAX_CLASSIFICATION_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await gemini.models.generateContent({
+        model: GEMINI_CLASSIFICATION_MODEL,
+        contents: buildFeedbackBatchClassificationPrompt({
+          items,
+          existingThemeNames,
+        }),
+        config: {
+          systemInstruction: FEEDBACK_BATCH_CLASSIFICATION_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseJsonSchema: feedbackBatchClassificationJsonSchema,
+        },
+      });
+
+      const responseText = response.text?.trim();
+
+      if (!responseText) {
+        lastInvalidOutputMessage = "Gemini returned an empty batch-classification response.";
+        continue;
+      }
+
+      const parsed = parseBatchClassificationOutput(responseText, expectedFeedbackIds);
+
+      if (!parsed.ok) {
+        lastInvalidOutputMessage = parsed.message;
+        continue;
+      }
+
+      return {
+        ok: true,
+        provider: PROVIDER,
+        model: response.modelVersion ?? GEMINI_CLASSIFICATION_MODEL,
+        attempts: attempt,
+        classifications: parsed.value.items,
+        usage: serializeUsageMetadata(response.usageMetadata),
+      };
+    } catch (error: unknown) {
+      const providerError = normalizeProviderError(error, attempt);
 
       if (attempt < MAX_CLASSIFICATION_ATTEMPTS && providerError.retryable) {
         continue;

@@ -8,6 +8,7 @@ import { importWorkspaceFeedbackCsv } from "@/services/feedback-import-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const MAX_MULTIPART_REQUEST_BYTES = MAX_CSV_FILE_BYTES + 256 * 1024;
 const ALLOWED_CSV_CONTENT_TYPES = new Set([

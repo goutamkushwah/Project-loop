@@ -1,5 +1,6 @@
 import type { FeedbackChannelValue } from "@/lib/feedback-catalog";
 import type { SimulatedChannelKey } from "@/lib/simulated-channel-catalog";
+import type { FeedbackClassificationBatchSummary } from "@/types/feedback-classification";
 
 export type SimulatedChannelImportSummary = {
   batchId: string;
@@ -9,6 +10,7 @@ export type SimulatedChannelImportSummary = {
   totalRows: number;
   importedRows: number;
   classificationQueuedRows: number;
+  classification: FeedbackClassificationBatchSummary;
   importedAt: string;
   oldestFeedbackAt: string;
   newestFeedbackAt: string;

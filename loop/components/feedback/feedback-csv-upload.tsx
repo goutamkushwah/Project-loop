@@ -109,7 +109,8 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
         body,
       });
       const result = (await response.json()) as
-        ApiSuccessResponse<CsvImportResponse> | ApiErrorResponse;
+        | ApiSuccessResponse<CsvImportResponse>
+        | ApiErrorResponse;
 
       if (!response.ok || !result.success) {
         if (!result.success) {
@@ -177,15 +178,12 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
             : "border-slate-300 bg-slate-50 hover:border-loop-300"
         }`}
       >
-        <label htmlFor="feedback-csv-file" className="cursor-pointer">
-          <span
-            aria-hidden="true"
-            className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-xl shadow-sm hover:bg-gray-100 transition"
-          >
-            ⇧
-          </span>
-        </label>
-
+        <span
+          aria-hidden="true"
+          className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-xl shadow-sm"
+        >
+          ⇧
+        </span>
         <label className="mt-4 inline-block cursor-pointer rounded-lg font-bold text-loop-800 underline decoration-loop-300 underline-offset-4 focus-within:ring-2 focus-within:ring-loop-500 focus-within:ring-offset-2">
           Choose a CSV file
           <input
@@ -243,7 +241,7 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
         disabled={!file || isUploading}
         className="inline-flex w-full items-center justify-center rounded-xl bg-loop-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-loop-800 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isUploading ? "Validating and importing…" : "Import CSV"}
+        {isUploading ? "Validating, importing, and classifying…" : "Import CSV"}
       </button>
 
       {summary ? (
@@ -283,13 +281,45 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
               <dt className="text-xs font-bold uppercase tracking-wide text-emerald-700">
                 Imported
               </dt>
-              <dd className="mt-1 text-xl font-black text-emerald-900">{summary.importedRows}</dd>
+              <dd className="mt-1 text-xl font-black text-emerald-900">
+                {summary.importedRows}
+              </dd>
             </div>
             <div className="rounded-xl bg-red-50 p-3 text-center">
               <dt className="text-xs font-bold uppercase tracking-wide text-red-700">Failed</dt>
               <dd className="mt-1 text-xl font-black text-red-900">{summary.failedRows}</dd>
             </div>
           </dl>
+
+          <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+            <p className="text-sm font-bold text-violet-900">Gemini classification</p>
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-white p-3 text-center ring-1 ring-inset ring-violet-100">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Classified</dt>
+                <dd className="mt-1 text-lg font-black text-emerald-800">
+                  {summary.classification.completedRows}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-center ring-1 ring-inset ring-violet-100">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Review</dt>
+                <dd className="mt-1 text-lg font-black text-amber-800">
+                  {summary.classification.reviewRequiredRows}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-center ring-1 ring-inset ring-violet-100">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">AI failed</dt>
+                <dd className="mt-1 text-lg font-black text-red-800">
+                  {summary.classification.failedRows}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-center ring-1 ring-inset ring-violet-100">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Queued</dt>
+                <dd className="mt-1 text-lg font-black text-violet-800">
+                  {summary.classification.skippedRows}
+                </dd>
+              </div>
+            </dl>
+          </div>
 
           {summary.errors.length > 0 ? (
             <div className="mt-5">
