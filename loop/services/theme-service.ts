@@ -1,401 +1,281 @@
-import { Prisma } from "@prisma/client";
+import "server-only";
+
+import { ClassificationStatus, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import type { ClassificationResult } from "@/services/classification-service";
+import { classifyWorkspaceFeedbackBatch } from "@/services/feedback-classification-service";
+import { listWorkspaceFeedback } from "@/services/feedback-service";
+import type { ApiErrorCode } from "@/types/api";
+import type { FeedbackListQuery } from "@/lib/feedback-validation";
+import type {
+  ThemeClusterSummary,
+  ThemeDetail,
+  ThemeFeedbackPage,
+  ThemeListItem,
+  ThemePage,
+} from "@/types/theme";
+import type { ThemeListQuery } from "@/lib/theme-validation";
 
-const ALLOWED_THEMES = [
-  "Authentication & SSO",
-  "Billing & Invoices",
-  "Collaboration & Permissions",
-  "Customer Support",
-  "Integrations & API",
-  "Mobile Experience",
-  "Onboarding & Setup",
-  "Performance & Reliability",
-  "Reporting & Export",
-  "Search & Navigation",
-] as const;
-
-type AllowedTheme = (typeof ALLOWED_THEMES)[number];
-
-function normalizeThemeName(
-  theme: string,
-): AllowedTheme {
-  const cleaned = theme
-    .trim()
-    .replace(/\s+/g, " ");
-
-  const normalized = cleaned.toLowerCase();
-
-  const themeAliases: Record<
-    string,
-    AllowedTheme
-  > = {
-    // Authentication
-    "authentication & sso": "Authentication & SSO",
-    authentication: "Authentication & SSO",
-    login: "Authentication & SSO",
-    "login issue": "Authentication & SSO",
-    "login problem": "Authentication & SSO",
-    sso: "Authentication & SSO",
-
-    // Billing
-    "billing & invoices": "Billing & Invoices",
-    "billing and invoices": "Billing & Invoices",
-    billing: "Billing & Invoices",
-    invoice: "Billing & Invoices",
-    invoices: "Billing & Invoices",
-    payment: "Billing & Invoices",
-    payments: "Billing & Invoices",
-    "payment issue": "Billing & Invoices",
-    "payment problem": "Billing & Invoices",
-
-    // Collaboration
-    "collaboration & permissions":
-      "Collaboration & Permissions",
-    collaboration:
-      "Collaboration & Permissions",
-    permissions:
-      "Collaboration & Permissions",
-    roles:
-      "Collaboration & Permissions",
-    "team collaboration":
-      "Collaboration & Permissions",
-
-    // Support
-    "customer support": "Customer Support",
-    support: "Customer Support",
-    "support issue": "Customer Support",
-    "customer service": "Customer Support",
-
-    // Integrations
-    "integrations & api": "Integrations & API",
-    integrations: "Integrations & API",
-    integration: "Integrations & API",
-    api: "Integrations & API",
-    webhooks: "Integrations & API",
-
-    // Mobile
-    "mobile experience": "Mobile Experience",
-    mobile: "Mobile Experience",
-    "mobile app": "Mobile Experience",
-    android: "Mobile Experience",
-    ios: "Mobile Experience",
-
-    // Onboarding
-    "onboarding & setup": "Onboarding & Setup",
-    onboarding: "Onboarding & Setup",
-    setup: "Onboarding & Setup",
-    configuration: "Onboarding & Setup",
-
-    // Performance
-    "performance & reliability":
-      "Performance & Reliability",
-    performance: "Performance & Reliability",
-    reliability: "Performance & Reliability",
-    "slow performance":
-      "Performance & Reliability",
-    "performance issue":
-      "Performance & Reliability",
-    "performance problem":
-      "Performance & Reliability",
-    speed: "Performance & Reliability",
-
-    // Reporting
-    "reporting & export": "Reporting & Export",
-    reporting: "Reporting & Export",
-    reports: "Reporting & Export",
-    export: "Reporting & Export",
-    "data export": "Reporting & Export",
-
-    // Search
-    "search & navigation":
-      "Search & Navigation",
-    search: "Search & Navigation",
-    navigation: "Search & Navigation",
-    filters: "Search & Navigation",
-  };
-
-  const result =
-    themeAliases[normalized];
-
-  if (result) {
-    return result;
-  }
-
-  // Safety fallback.
-  // Do NOT allow Gemini to create arbitrary themes.
-  return "Customer Support";
-}
-
-function generateThemeColor(
-  name: string,
-): string {
-  const colors = [
-    "#6366F1",
-    "#8B5CF6",
-    "#EC4899",
-    "#F97316",
-    "#14B8A6",
-    "#06B6D4",
-    "#22C55E",
-    "#EAB308",
-  ];
-
-  let hash = 0;
-
-  for (
-    let index = 0;
-    index < name.length;
-    index += 1
+export class ThemeServiceError extends Error {
+  constructor(
+    public readonly code: ApiErrorCode,
+    message: string,
+    public readonly status: number,
   ) {
-    hash =
-      name.charCodeAt(index) +
-      ((hash << 5) - hash);
+    super(message);
+    this.name = "ThemeServiceError";
+  }
+}
+
+type ThemeRow = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  feedbackCount: bigint;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type CountRow = {
+  count: bigint;
+};
+
+function serializeTheme(row: ThemeRow): ThemeListItem {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    color: row.color,
+    feedbackCount: Number(row.feedbackCount),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function buildThemeSearchSql(workspaceId: string, search: string): Prisma.Sql {
+  let whereSql = Prisma.sql`t."workspaceId" = CAST(${workspaceId} AS uuid)`;
+
+  if (search) {
+    const searchPattern = `%${search}%`;
+    whereSql = Prisma.sql`${whereSql}
+      AND (
+        t."name" ILIKE ${searchPattern}
+        OR t."description" ILIKE ${searchPattern}
+      )`;
   }
 
-  return colors[
-    Math.abs(hash) % colors.length
-  ];
+  return whereSql;
 }
 
-/**
- * Assign classified feedback to a predefined theme.
- */
-export async function assignFeedbackTheme(
-  feedbackId: string,
+function buildThemeOrderSql(query: ThemeListQuery): Prisma.Sql {
+  const direction = query.sortOrder === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+
+  switch (query.sortBy) {
+    case "name":
+      return Prisma.sql`t."name" ${direction}, t."id" ASC`;
+    case "createdAt":
+      return Prisma.sql`t."createdAt" ${direction}, t."name" ASC, t."id" ASC`;
+    case "count":
+      return Prisma.sql`COUNT(ft."feedbackId") ${direction}, t."name" ASC, t."id" ASC`;
+  }
+}
+
+export async function listWorkspaceThemes(
   workspaceId: string,
-  classification: ClassificationResult,
-) {
-  const themeName = normalizeThemeName(
-    classification.theme,
-  );
+  query: ThemeListQuery,
+): Promise<ThemePage> {
+  const whereSql = buildThemeSearchSql(workspaceId, query.search);
+  const orderSql = buildThemeOrderSql(query);
 
-  console.log(
-    "THEME CLASSIFICATION:",
-    classification.theme,
-  );
+  return db.$transaction(
+    async (transaction) => {
+      const countRows = await transaction.$queryRaw<CountRow[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS "count"
+        FROM "Theme" AS t
+        WHERE ${whereSql}
+      `);
+      const totalItems = countRows[0] ? Number(countRows[0].count) : 0;
+      const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+      const effectivePage = Math.min(query.page, totalPages);
+      const offset = (effectivePage - 1) * query.pageSize;
 
-  console.log(
-    "NORMALIZED THEME:",
-    themeName,
-  );
+      const rows =
+        totalItems === 0
+          ? []
+          : await transaction.$queryRaw<ThemeRow[]>(Prisma.sql`
+              SELECT
+                t."id",
+                t."name",
+                t."description",
+                t."color",
+                t."createdAt",
+                t."updatedAt",
+                COUNT(ft."feedbackId")::bigint AS "feedbackCount"
+              FROM "Theme" AS t
+              LEFT JOIN "FeedbackTheme" AS ft
+                ON ft."themeId" = t."id"
+                AND ft."workspaceId" = CAST(${workspaceId} AS uuid)
+              WHERE ${whereSql}
+              GROUP BY
+                t."id",
+                t."name",
+                t."description",
+                t."color",
+                t."createdAt",
+                t."updatedAt"
+              ORDER BY ${orderSql}
+              LIMIT ${query.pageSize}
+              OFFSET ${offset}
+            `);
 
-  const theme =
-    await db.theme.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: themeName,
+      return {
+        items: rows.map(serializeTheme),
+        pagination: {
+          page: effectivePage,
+          pageSize: query.pageSize,
+          totalItems,
+          totalPages,
         },
-      },
-
-      update: {
-        description:
-          `Customer feedback related to ${themeName}.`,
-        updatedAt: new Date(),
-      },
-
-      create: {
-        workspaceId,
-        name: themeName,
-        description:
-          `Customer feedback related to ${themeName}.`,
-        color:
-          generateThemeColor(themeName),
-      },
-    });
-
-  const feedbackTheme =
-    await db.feedbackTheme.upsert({
-      where: {
-        feedbackId_themeId: {
-          feedbackId,
-          themeId: theme.id,
+        query: {
+          search: query.search,
+          sortBy: query.sortBy,
+          sortOrder: query.sortOrder,
         },
-      },
-
-      update: {
-        confidence:
-          new Prisma.Decimal(
-            classification.themeConfidence.toFixed(
-              3,
-            ),
-          ),
-      },
-
-      create: {
-        feedbackId,
-        themeId: theme.id,
-        workspaceId,
-        confidence:
-          new Prisma.Decimal(
-            classification.themeConfidence.toFixed(
-              3,
-            ),
-          ),
-      },
-    });
-
-  console.log(
-    "THEME ASSIGNED:",
+      };
+    },
     {
-      themeId: theme.id,
-      themeName: theme.name,
-      feedbackId,
-      confidence:
-        feedbackTheme.confidence.toString(),
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     },
   );
-
-  return theme;
 }
 
-/**
- * Get theme counts for a workspace.
- */
-export async function getThemeCounts(
-  workspaceId: string,
-) {
-  const themes =
-    await db.theme.findMany({
-      where: {
-        workspaceId,
-      },
-
-      orderBy: {
-        name: "asc",
-      },
-
-      include: {
-        _count: {
-          select: {
-            feedback: true,
-          },
-        },
-      },
-    });
-
-  return themes.map((theme) => ({
-    id: theme.id,
-    name: theme.name,
-    description: theme.description,
-    color: theme.color,
-    count: theme._count.feedback,
-  }));
-}
-
-/**
- * Get details for one theme.
- */
-export async function getThemeDetails(
+export async function getWorkspaceTheme(
   workspaceId: string,
   themeId: string,
-) {
-  return db.theme.findFirst({
-    where: {
-      id: themeId,
-      workspaceId,
-    },
+): Promise<ThemeDetail | null> {
+  const rows = await db.$queryRaw<ThemeRow[]>(Prisma.sql`
+    SELECT
+      t."id",
+      t."name",
+      t."description",
+      t."color",
+      t."createdAt",
+      t."updatedAt",
+      COUNT(ft."feedbackId")::bigint AS "feedbackCount"
+    FROM "Theme" AS t
+    LEFT JOIN "FeedbackTheme" AS ft
+      ON ft."themeId" = t."id"
+      AND ft."workspaceId" = CAST(${workspaceId} AS uuid)
+    WHERE t."id" = CAST(${themeId} AS uuid)
+      AND t."workspaceId" = CAST(${workspaceId} AS uuid)
+    GROUP BY
+      t."id",
+      t."name",
+      t."description",
+      t."color",
+      t."createdAt",
+      t."updatedAt"
+    LIMIT 1
+  `);
 
-    include: {
-      _count: {
-        select: {
-          feedback: true,
-        },
-      },
-
-      feedback: {
-        orderBy: {
-          createdAt: "desc",
-        },
-
-        include: {
-          feedback: {
-            select: {
-              id: true,
-              content: true,
-              sentiment: true,
-              sentimentScore: true,
-              featureArea: true,
-              classificationRationale: true,
-              createdAt: true,
-              channel: true,
-              status: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  return rows[0] ? serializeTheme(rows[0]) : null;
 }
 
-/**
- * Drill down into feedback belonging to a theme.
- */
-export async function getThemeFeedback(
+export async function listWorkspaceThemeFeedback(
   workspaceId: string,
   themeId: string,
-) {
-  const theme =
-    await db.theme.findFirst({
-      where: {
-        id: themeId,
-        workspaceId,
-      },
-
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        color: true,
-      },
-    });
+  query: Omit<FeedbackListQuery, "themeId">,
+): Promise<ThemeFeedbackPage> {
+  const theme = await getWorkspaceTheme(workspaceId, themeId);
 
   if (!theme) {
-    return null;
+    throw new ThemeServiceError(
+      "THEME_NOT_FOUND",
+      "The requested theme was not found in this workspace.",
+      404,
+    );
   }
 
-  const feedback =
-    await db.feedbackTheme.findMany({
-      where: {
-        workspaceId,
-        themeId,
-      },
-
-      orderBy: {
-        feedback: {
-          createdAt: "desc",
-        },
-      },
-
-      include: {
-        feedback: {
-          select: {
-            id: true,
-            content: true,
-            sentiment: true,
-            sentimentScore: true,
-            featureArea: true,
-            classificationRationale: true,
-            classificationStatus: true,
-            channel: true,
-            status: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+  const feedback = await listWorkspaceFeedback(workspaceId, {
+    ...query,
+    themeId,
+  });
 
   return {
     theme,
+    feedback,
+  };
+}
 
-    feedback: feedback.map(
-      (item) => ({
-        ...item.feedback,
-        confidence:
-          item.confidence,
-      }),
-    ),
+export async function clusterWorkspaceFeedbackThemes(
+  workspaceId: string,
+  limit: number,
+): Promise<ThemeClusterSummary> {
+  const staleBefore = new Date(Date.now() - 15 * 60 * 1_000);
+  const candidateWhere: Prisma.FeedbackWhereInput = {
+    workspaceId,
+    OR: [
+      {
+        classificationStatus: {
+          not: ClassificationStatus.PROCESSING,
+        },
+      },
+      {
+        classificationStatus: ClassificationStatus.PROCESSING,
+        updatedAt: {
+          lt: staleBefore,
+        },
+      },
+    ],
+    themes: {
+      none: {
+        workspaceId,
+      },
+    },
+  };
+
+  const [candidateRows, candidates] = await db.$transaction([
+    db.feedback.count({
+      where: candidateWhere,
+    }),
+    db.feedback.findMany({
+      where: candidateWhere,
+      select: {
+        id: true,
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: limit,
+    }),
+  ]);
+
+  const classification = await classifyWorkspaceFeedbackBatch(
+    workspaceId,
+    candidates.map((candidate) => candidate.id),
+  );
+
+  const [remainingUnassignedRows, themeCount] = await Promise.all([
+    db.feedback.count({
+      where: {
+        workspaceId,
+        themes: {
+          none: {
+            workspaceId,
+          },
+        },
+      },
+    }),
+    db.theme.count({
+      where: {
+        workspaceId,
+      },
+    }),
+  ]);
+
+  return {
+    ...classification,
+    candidateRows,
+    remainingUnassignedRows,
+    themeCount,
   };
 }

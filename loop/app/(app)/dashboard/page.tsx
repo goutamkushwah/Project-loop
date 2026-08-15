@@ -68,6 +68,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           >
             Open inbox
           </Link>
+          <Link
+            href="/themes"
+            className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-loop-300 hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
+          >
+            Explore themes
+          </Link>
         </div>
       </div>
 
@@ -90,12 +96,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-600">
-          Day 12 AI data note
+          Day 13 theme data note
         </p>
         <h2 className="mt-2 text-xl font-black text-slate-900">No analytics values are fabricated.</h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
-          Volume and stat totals come directly from PostgreSQL. Sentiment values and theme counts now
-          populate only from validated Gemini classifications stored on tenant-scoped feedback records.
+          Volume and stat totals come directly from PostgreSQL. Theme counts use stored, tenant-scoped
+          FeedbackTheme assignments. The dedicated Themes view drills each count back to its underlying
+          feedback instead of presenting an unsupported AI summary.
         </p>
       </section>
     </main>

@@ -21,6 +21,7 @@ function roleLabel(role: UserRole): string {
 
 export function AppHeader({ user }: AppHeaderProps) {
   const canReadFeedback = hasPermission(user.role, PERMISSIONS.FEEDBACK_READ);
+  const canReadThemes = hasPermission(user.role, PERMISSIONS.THEMES_READ);
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
   return (
@@ -71,18 +72,12 @@ export function AppHeader({ user }: AppHeaderProps) {
                 Inbox
               </Link>
             ) : null}
-            <Link
-              href="/dashboard/themes"
-              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-            >
-              Themes
-            </Link>
-            {canReadFeedback ? (
+            {canReadThemes ? (
               <Link
-                href="/trends"
+                href="/themes"
                 className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
               >
-                Trends
+                Themes
               </Link>
             ) : null}
             {canManageMembers ? (
@@ -94,12 +89,6 @@ export function AppHeader({ user }: AppHeaderProps) {
               </Link>
             ) : null}
           </nav>
-          <Link
-  href="/ask"
-  className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
->
-  Ask LOOP
-</Link>
 
           <div className="hidden items-center gap-3 lg:flex">
             <span className="hidden max-w-56 truncate text-sm text-slate-500 xl:block">
