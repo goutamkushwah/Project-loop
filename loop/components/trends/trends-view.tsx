@@ -288,24 +288,25 @@ export function TrendsView({ data }: TrendsViewProps) {
         {data.themes.length > 0 ? (
           <div className="mt-6 overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+              <caption className="sr-only">Theme assignment counts for the current and previous comparison periods.</caption>
               <thead>
                 <tr className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  <th className="border-b border-slate-200 px-3 py-3">Theme</th>
-                  <th className="border-b border-slate-200 px-3 py-3 text-right">Current</th>
-                  <th className="border-b border-slate-200 px-3 py-3 text-right">Previous</th>
-                  <th className="border-b border-slate-200 px-3 py-3 text-right">Change</th>
-                  <th className="border-b border-slate-200 px-3 py-3 text-right">Evidence</th>
+                  <th scope="col" className="border-b border-slate-200 px-3 py-3">Theme</th>
+                  <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right">Current</th>
+                  <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right">Previous</th>
+                  <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right">Change</th>
+                  <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right">Evidence</th>
                 </tr>
               </thead>
               <tbody>
                 {data.themes.map((theme) => (
                   <tr key={theme.id}>
-                    <td className="border-b border-slate-100 px-3 py-4">
+                    <th scope="row" className="border-b border-slate-100 px-3 py-4 font-normal">
                       <Link href={`/themes/${theme.id}`} className="inline-flex items-center gap-2 font-bold text-slate-900 hover:text-loop-700">
                         <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: theme.color }} />
                         {theme.name}
                       </Link>
-                    </td>
+                    </th>
                     <td className="border-b border-slate-100 px-3 py-4 text-right font-bold text-slate-900">
                       {formatNumber(theme.currentCount)}
                     </td>

@@ -58,7 +58,7 @@ export default async function SharedReportPage({ params }: SharedReportPageProps
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-5 py-10 outline-none sm:px-8 sm:py-14">
         <section className="mb-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-loop-600">
             Shared report
