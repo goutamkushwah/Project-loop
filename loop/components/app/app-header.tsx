@@ -26,9 +26,12 @@ export function AppHeader({ user }: AppHeaderProps) {
   const canReadReports = hasPermission(user.role, PERMISSIONS.REPORTS_READ);
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
+  const navLinkClass =
+    "rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2";
+
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center justify-between gap-5 lg:justify-start">
           <div className="flex min-w-0 items-center gap-5">
             <Link
@@ -43,78 +46,79 @@ export function AppHeader({ user }: AppHeaderProps) {
               </span>
             </Link>
 
-            <div className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
+            <div
+              className="hidden h-8 w-px bg-slate-200 sm:block"
+              aria-hidden="true"
+            />
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">{user.workspace.name}</p>
-              <p className="truncate text-xs text-slate-500">
-                {user.name} · {roleLabel(user.role)}
-              </p>
-            </div>
-          </div>
-
+            
           <div className="lg:hidden">
             <LogoutButton />
           </div>
         </div>
 
         <div className="flex min-w-0 items-center justify-between gap-4">
-          <nav className="flex flex-wrap items-center gap-1" aria-label="Workspace navigation">
-            <Link
-              href="/dashboard"
-              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-            >
+          <nav
+            className="flex flex-wrap items-center gap-1"
+            aria-label="Workspace navigation"
+          >
+            <Link href="/" className={navLinkClass}>
+              Home
+            </Link>
+
+            <Link href="/about" className={navLinkClass}>
+              About
+            </Link>
+
+            <Link href="/dashboard" className={navLinkClass}>
               Dashboard
             </Link>
-            {canReadFeedback ? (
-              <Link
-                href="/inbox"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+
+            {canReadFeedback && (
+              <Link href="/inbox" className={navLinkClass}>
                 Inbox
               </Link>
-            ) : null}
-            {canReadThemes ? (
-              <Link
-                href="/themes"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+            )}
+
+            {canReadThemes && (
+              <Link href="/themes" className={navLinkClass}>
                 Themes
               </Link>
-            ) : null}
-            {canAskLoop ? (
-              <Link
-                href="/ask"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+            )}
+
+            {canAskLoop && (
+              <Link href="/ask" className={navLinkClass}>
                 Ask LOOP
               </Link>
-            ) : null}
-            {canReadThemes ? (
-              <Link
-                href="/trends"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+            )}
+
+            {canReadThemes && (
+              <Link href="/trends" className={navLinkClass}>
                 Trends
               </Link>
-            ) : null}
-            {canReadReports ? (
-              <Link
-                href="/reports"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+            )}
+
+            {canReadReports && (
+              <Link href="/reports" className={navLinkClass}>
                 Reports
               </Link>
-            ) : null}
-            {canManageMembers ? (
-              <Link
-                href="/settings/members"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-loop-50 hover:text-loop-900 focus:outline-none focus:ring-2 focus:ring-loop-500 focus:ring-offset-2"
-              >
+            )}
+
+            {canManageMembers && (
+              <Link href="/settings/members" className={navLinkClass}>
                 Members
               </Link>
-            ) : null}
+            )}
           </nav>
+<div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-900">
+                {user.workspace.name}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {user.name} · {roleLabel(user.role)}
+              </p>
+            </div>
+          </div>
 
           <div className="hidden items-center gap-3 lg:flex">
             <span className="hidden max-w-56 truncate text-sm text-slate-500 xl:block">

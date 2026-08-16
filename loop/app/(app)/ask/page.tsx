@@ -20,16 +20,11 @@ export default async function AskLoopPage() {
     <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="flex flex-col gap-5 border-b border-slate-200 pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
-            AI integration · Day 15
-          </p>
+         
           <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
             Ask LOOP
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-            Ask a plain-English question about {user.workspace.name}. LOOP first retrieves the most
-            semantically relevant workspace feedback, then asks Gemini to answer only from that evidence.
-          </p>
+          
         </div>
 
         <span className="w-fit rounded-full bg-loop-100 px-4 py-2 text-sm font-bold text-loop-800">
@@ -64,8 +59,7 @@ export default async function AskLoopPage() {
           role="status"
           className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900"
         >
-          Ask LOOP searches indexed feedback only. Run the Day 15 embedding backfill command so existing
-          seeded feedback is included in semantic retrieval.
+         Ask LOOP searches indexed feedback only. Run the embedding backfill command so existing seeded feedback is included in semantic retrieval.
         </div>
       ) : null}
 

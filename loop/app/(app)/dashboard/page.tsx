@@ -49,17 +49,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="flex flex-col gap-5 border-b border-slate-200 pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-loop-600">
-            Week 4 · Day 17
-          </p>
+          
           <h1 className="mt-3 text-4xl font-black tracking-tight text-loop-900">
             Customer feedback at a glance
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-            Volume, Gemini sentiment, classification health, and stored theme assignments are
-            calculated from real records in the isolated {user.workspace.name} workspace. Every
-            chart and AI metric uses the same server-validated filter set.
-          </p>
+         
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -98,20 +92,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <DashboardAnalytics data={analytics} />
       </div>
 
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-600">
-          Day 17 data integrity
-        </p>
-        <h2 className="mt-2 text-xl font-black text-slate-900">
-          AI numbers are read from stored, validated Gemini results.
-        </h2>
-        <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
-          The dashboard does not ask Gemini to recalculate sentiment or themes on page load.
-          Classification states, sentiment scores, sentiment labels, and theme coverage are queried
-          from PostgreSQL, while every theme count remains traceable to tenant-scoped FeedbackTheme
-          assignments.
-        </p>
-      </section>
+     
     </main>
   );
 }
