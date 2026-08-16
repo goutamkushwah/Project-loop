@@ -513,6 +513,7 @@ export function MemberManagement({
           ) : null}
 
           <table className="min-w-[900px] w-full border-collapse text-left">
+            <caption className="sr-only">Workspace members, roles, account status, last login, and available administrative actions.</caption>
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-6 py-4 sm:px-8">Member</th>
@@ -528,7 +529,7 @@ export function MemberManagement({
 
                 return (
                   <tr key={member.id} className="align-middle">
-                    <td className="px-6 py-5 sm:px-8">
+                    <th scope="row" className="px-6 py-5 text-left font-normal sm:px-8">
                       <div className="flex items-center gap-3">
                         <span
                           aria-hidden="true"
@@ -551,7 +552,7 @@ export function MemberManagement({
                           </p>
                         </div>
                       </div>
-                    </td>
+                    </th>
                     <td className="px-4 py-5">
                       <label htmlFor={`role-${member.id}`} className="sr-only">
                         Role for {member.name}

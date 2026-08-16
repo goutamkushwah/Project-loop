@@ -118,10 +118,7 @@ function utcDayAfter(value: string): Date {
   return date;
 }
 
-function buildFeedbackWhereSql(
-  workspaceId: string,
-  query: FeedbackListQuery,
-): Prisma.Sql {
+function buildFeedbackWhereSql(workspaceId: string, query: FeedbackListQuery): Prisma.Sql {
   let whereSql = Prisma.sql`f."workspaceId" = CAST(${workspaceId} AS uuid)`;
 
   if (query.search) {
@@ -228,9 +225,7 @@ export async function listWorkspaceFeedback(
               },
               select: feedbackSelect,
             });
-      const feedbackById = new Map(
-        selectedFeedback.map((feedback) => [feedback.id, feedback]),
-      );
+      const feedbackById = new Map(selectedFeedback.map((feedback) => [feedback.id, feedback]));
       const feedbackItems = orderedIds.flatMap((id) => {
         const feedback = feedbackById.get(id);
         return feedback ? [feedback] : [];
@@ -257,7 +252,8 @@ export async function listWorkspaceFeedback(
       };
     },
     {
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      timeout: 15000,
     },
   );
 }

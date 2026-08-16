@@ -1,31 +1,23 @@
 "use client";
 
-import Link from "next/link";
+import { RouteErrorState } from "@/components/app/route-error-state";
 
-export default function ThemeDetailError({ reset }: { reset: () => void }) {
+export default function ThemeDetailError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
-    <main className="mx-auto max-w-4xl px-5 py-16 sm:px-8">
-      <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-        <h1 className="text-2xl font-black text-red-950">Theme feedback could not be loaded</h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-red-800">
-          The theme exists, but its underlying feedback could not be loaded safely.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-xl bg-red-900 px-5 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-          >
-            Try again
-          </button>
-          <Link
-            href="/themes"
-            className="rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-          >
-            Back to themes
-          </Link>
-        </div>
-      </div>
-    </main>
+    <RouteErrorState
+      error={error}
+      reset={reset}
+      eyebrow="Theme evidence unavailable"
+      title="Theme feedback could not be loaded."
+      description="LOOP could not read the supporting feedback for this theme. No feedback or theme assignment was changed."
+      returnHref="/themes"
+      returnLabel="Back to themes"
+    />
   );
 }

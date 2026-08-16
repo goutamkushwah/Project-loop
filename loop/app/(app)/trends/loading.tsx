@@ -1,6 +1,6 @@
 export default function TrendsLoading() {
   return (
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-busy="true">
+    <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-busy="true" aria-label="Loading theme trends">
       <div className="animate-pulse">
         <div className="h-4 w-44 rounded bg-slate-200" />
         <div className="mt-4 h-10 w-72 rounded bg-slate-200" />

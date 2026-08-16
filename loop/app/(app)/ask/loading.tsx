@@ -1,6 +1,6 @@
 export default function AskLoopLoading() {
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14" aria-busy="true">
+    <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14" aria-busy="true" aria-label="Loading Ask LOOP">
       <div className="animate-pulse">
         <div className="h-4 w-44 rounded bg-slate-200" />
         <div className="mt-4 h-10 w-64 rounded bg-slate-200" />
