@@ -6,6 +6,10 @@ import { requireCurrentUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Access denied",
   description: "Your LOOP workspace role does not permit this action.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function ForbiddenPage() {

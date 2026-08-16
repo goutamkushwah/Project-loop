@@ -119,18 +119,19 @@ export function ReportDetail({ report, evidenceLinks = true }: ReportDetailProps
 
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
+              <caption className="sr-only">Sentiment comparison for the current and previous report periods.</caption>
               <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.12em] text-slate-500">
                 <tr>
-                  <th className="py-3 pr-4">Sentiment</th>
-                  <th className="py-3 pr-4">Current</th>
-                  <th className="py-3 pr-4">Previous</th>
-                  <th className="py-3">Shift</th>
+                  <th scope="col" className="py-3 pr-4">Sentiment</th>
+                  <th scope="col" className="py-3 pr-4">Current</th>
+                  <th scope="col" className="py-3 pr-4">Previous</th>
+                  <th scope="col" className="py-3">Shift</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {content.sentiment.map((item) => (
                   <tr key={item.sentiment}>
-                    <td className="py-3 pr-4 font-bold text-slate-800">{item.label}</td>
+                    <th scope="row" className="py-3 pr-4 font-bold text-slate-800">{item.label}</th>
                     <td className="py-3 pr-4 text-slate-600">
                       {formatPercent(item.percentage)} ({formatNumber(item.count)})
                     </td>

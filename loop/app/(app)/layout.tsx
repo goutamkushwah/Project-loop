@@ -13,7 +13,9 @@ export default async function ProtectedAppLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <AppHeader user={user} />
-      {children}
+      <div id="main-content" tabIndex={-1} className="outline-none">
+        {children}
+      </div>
     </div>
   );
 }

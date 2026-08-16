@@ -336,6 +336,7 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
               <p className="text-sm font-bold text-slate-900">Rows requiring correction</p>
               <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-slate-200">
                 <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                  <caption className="sr-only">CSV rows that could not be imported and the validation issue for each row.</caption>
                   <thead className="sticky top-0 bg-slate-50">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-bold text-slate-700">
@@ -352,9 +353,9 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {summary.errors.map((error, index) => (
                       <tr key={`${error.row}-${error.field ?? "row"}-${index}`}>
-                        <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">
+                        <th scope="row" className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-900">
                           {error.row}
-                        </td>
+                        </th>
                         <td className="whitespace-nowrap px-3 py-2 text-slate-600">
                           {error.field ?? "row"}
                         </td>
