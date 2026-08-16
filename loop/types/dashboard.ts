@@ -17,6 +17,17 @@ export type DashboardStatSummary = {
   classificationCoverage: number;
 };
 
+export type DashboardAiSummary = {
+  completedClassifications: number;
+  pendingClassifications: number;
+  processingClassifications: number;
+  failedClassifications: number;
+  reviewRequiredClassifications: number;
+  averageSentimentScore: number | null;
+  themeAssignedItems: number;
+  themeCoverage: number;
+};
+
 export type DashboardVolumePoint = {
   date: string;
   label: string;
@@ -46,42 +57,8 @@ export type DashboardAnalyticsData = {
     dayCount: number;
   };
   stats: DashboardStatSummary;
+  ai: DashboardAiSummary;
   volume: DashboardVolumePoint[];
   sentiment: DashboardSentimentPoint[];
   topThemes: DashboardThemePoint[];
-};
-
-export type TrendSeriesPoint = {
-  date: string;
-  label: string;
-  count: number;
-};
-
-export type ThemeTrendSeries = {
-  id: string;
-  name: string;
-  color: string;
-  points: TrendSeriesPoint[];
-  totalCount: number;
-};
-
-export type TrendSpike = {
-  themeId: string;
-  themeName: string;
-  color: string;
-  date: string;
-  label: string;
-  count: number;
-  baselineAverage: number;
-  percentageIncrease: number;
-};
-
-export type DashboardTrendsData = {
-  period: {
-    dateFrom: string;
-    dateTo: string;
-    dayCount: number;
-  };
-  themeSeries: ThemeTrendSeries[];
-  spikes: TrendSpike[];
 };

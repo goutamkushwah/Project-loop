@@ -1,4 +1,4 @@
-////import "server-only";
+import "server-only";
 
 import { Prisma } from "@prisma/client";
 
@@ -8,11 +8,7 @@ import type {
   DashboardAnalyticsData,
   DashboardSentimentPoint,
   DashboardThemePoint,
-  DashboardTrendsData,
   DashboardVolumePoint,
-  ThemeTrendSeries,
-  TrendSeriesPoint,
-  TrendSpike,
 } from "@/types/dashboard";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -22,10 +18,6 @@ const SENTIMENT_LABELS = {
   NEU: "Neutral",
   NEG: "Negative",
 } as const;
-
-type CountRow = {
-  count: bigint;
-};
 
 type VolumeRow = {
   date: Date;
@@ -106,6 +98,10 @@ function roundPercentage(numerator: number, denominator: number): number {
   return Math.round((numerator / denominator) * 10_000) / 100;
 }
 
+function roundScore(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function formatVolumeLabel(date: Date): string {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -122,28 +118,33 @@ export async function getWorkspaceDashboardAnalytics(
   const prismaWhere = buildPrismaWhere(workspaceId, query);
   const periodStart = utcDateStart(query.dateFrom);
   const periodEnd = utcDateStart(query.dateTo);
-  const dayCount = Math.floor((periodEnd.getTime() - periodStart.getTime()) / MILLISECONDS_PER_DAY) + 1;
+  const dayCount =
+    Math.floor((periodEnd.getTime() - periodStart.getTime()) / MILLISECONDS_PER_DAY) + 1;
   const currentWeekStart = startOfCurrentUtcWeek();
   const weekWindowStart = maxDate(periodStart, currentWeekStart);
 
- 
+  return db.$transaction(
+    async (transaction) => {
       const [
         totalItems,
         classifiedItems,
         negativeItems,
         newThisWeek,
+        classificationRows,
+        sentimentScoreAggregate,
+        themeAssignedItems,
         volumeRows,
         sentimentRows,
         themeRows,
       ] = await Promise.all([
-        db.feedback.count({ where: prismaWhere }),
-        db.feedback.count({
+        transaction.feedback.count({ where: prismaWhere }),
+        transaction.feedback.count({
           where: {
             ...prismaWhere,
             sentiment: { not: null },
           },
         }),
-        db.feedback.count({
+        transaction.feedback.count({
           where: {
             ...prismaWhere,
             sentiment: "NEG",
@@ -151,7 +152,7 @@ export async function getWorkspaceDashboardAnalytics(
         }),
         weekWindowStart >= utcDayAfter(query.dateTo)
           ? Promise.resolve(0)
-          : db.feedback.count({
+          : transaction.feedback.count({
               where: {
                 ...prismaWhere,
                 createdAt: {
@@ -160,7 +161,31 @@ export async function getWorkspaceDashboardAnalytics(
                 },
               },
             }),
-        db.$queryRaw<VolumeRow[]>(Prisma.sql`
+        transaction.feedback.groupBy({
+          by: ["classificationStatus"],
+          where: prismaWhere,
+          _count: { _all: true },
+        }),
+        transaction.feedback.aggregate({
+          where: {
+            ...prismaWhere,
+            sentimentScore: { not: null },
+          },
+          _avg: {
+            sentimentScore: true,
+          },
+        }),
+        transaction.feedback.count({
+          where: {
+            ...prismaWhere,
+            themes: {
+              some: {
+                workspaceId,
+              },
+            },
+          },
+        }),
+        transaction.$queryRaw<VolumeRow[]>(Prisma.sql`
           WITH dates AS (
             SELECT generate_series(
               CAST(${periodStart} AS date),
@@ -179,14 +204,14 @@ export async function getWorkspaceDashboardAnalytics(
           LEFT JOIN counts ON counts."date" = dates."date"
           ORDER BY dates."date" ASC
         `),
-        db.$queryRaw<SentimentRow[]>(Prisma.sql`
+        transaction.$queryRaw<SentimentRow[]>(Prisma.sql`
           SELECT f."sentiment", COUNT(*)::bigint AS "count"
           FROM "Feedback" AS f
           WHERE ${whereSql}
             AND f."sentiment" IS NOT NULL
           GROUP BY f."sentiment"
         `),
-        db.$queryRaw<ThemeRow[]>(Prisma.sql`
+        transaction.$queryRaw<ThemeRow[]>(Prisma.sql`
           SELECT t."id", t."name", t."color", COUNT(*)::bigint AS "count"
           FROM "FeedbackTheme" AS ft
           INNER JOIN "Feedback" AS f
@@ -202,6 +227,13 @@ export async function getWorkspaceDashboardAnalytics(
           LIMIT 8
         `),
       ]);
+
+      const classificationCounts = new Map(
+        classificationRows.map((row) => [row.classificationStatus, row._count._all]),
+      );
+      const averageSentimentDecimal = sentimentScoreAggregate._avg.sentimentScore;
+      const averageSentimentScore =
+        averageSentimentDecimal === null ? null : roundScore(Number(averageSentimentDecimal));
 
       const volume: DashboardVolumePoint[] = volumeRows.map((row) => ({
         date: row.date.toISOString().slice(0, 10),
@@ -252,154 +284,24 @@ export async function getWorkspaceDashboardAnalytics(
           newThisWeek,
           classificationCoverage: roundPercentage(classifiedItems, totalItems),
         },
+        ai: {
+          completedClassifications: classificationCounts.get("COMPLETED") ?? 0,
+          pendingClassifications: classificationCounts.get("PENDING") ?? 0,
+          processingClassifications: classificationCounts.get("PROCESSING") ?? 0,
+          failedClassifications: classificationCounts.get("FAILED") ?? 0,
+          reviewRequiredClassifications: classificationCounts.get("REVIEW_REQUIRED") ?? 0,
+          averageSentimentScore,
+          themeAssignedItems,
+          themeCoverage: roundPercentage(themeAssignedItems, totalItems),
+        },
         volume,
         sentiment,
         topThemes,
       };
-    
-}
-
-// --- Trends: theme trend charts + spike detection -------------------------
-
-const TREND_THEME_LIMIT = 6;
-const SPIKE_BASELINE_WINDOW_DAYS = 7;
-const SPIKE_MIN_COUNT = 3;
-const SPIKE_INCREASE_THRESHOLD = 0.75; // 75% above baseline average
-
-type ThemeDayRow = {
-  themeId: string;
-  themeName: string;
-  color: string;
-  date: Date;
-  count: bigint;
-};
-
-export async function getWorkspaceDashboardTrends(
-  workspaceId: string,
-  query: DashboardQuery,
-): Promise<DashboardTrendsData> {
-  const whereSql = buildFeedbackWhereSql(workspaceId, query);
-  const periodStart = utcDateStart(query.dateFrom);
-  const periodEnd = utcDateStart(query.dateTo);
-  const dayCount = Math.floor((periodEnd.getTime() - periodStart.getTime()) / MILLISECONDS_PER_DAY) + 1;
-
-  const themeDayRows = await db.$queryRaw<ThemeDayRow[]>(Prisma.sql`
-    WITH dates AS (
-      SELECT generate_series(
-        CAST(${periodStart} AS date),
-        CAST(${periodEnd} AS date),
-        INTERVAL '1 day'
-      )::date AS "date"
-    ), top_themes AS (
-      SELECT t."id", t."name", t."color", COUNT(*)::bigint AS "totalCount"
-      FROM "FeedbackTheme" AS ft
-      INNER JOIN "Feedback" AS f
-        ON f."id" = ft."feedbackId"
-        AND f."workspaceId" = CAST(${workspaceId} AS uuid)
-      INNER JOIN "Theme" AS t
-        ON t."id" = ft."themeId"
-        AND t."workspaceId" = CAST(${workspaceId} AS uuid)
-      WHERE ft."workspaceId" = CAST(${workspaceId} AS uuid)
-        AND ${whereSql}
-      GROUP BY t."id", t."name", t."color"
-      ORDER BY "totalCount" DESC, t."name" ASC
-      LIMIT ${TREND_THEME_LIMIT}
-    ), counts AS (
-      SELECT tt."id" AS "themeId", tt."name" AS "themeName", tt."color",
-             date_trunc('day', f."createdAt" AT TIME ZONE 'UTC')::date AS "date",
-             COUNT(*)::bigint AS "count"
-      FROM top_themes AS tt
-      INNER JOIN "FeedbackTheme" AS ft ON ft."themeId" = tt."id"
-      INNER JOIN "Feedback" AS f
-        ON f."id" = ft."feedbackId"
-        AND f."workspaceId" = CAST(${workspaceId} AS uuid)
-      WHERE ${whereSql}
-      GROUP BY tt."id", tt."name", tt."color", date_trunc('day', f."createdAt" AT TIME ZONE 'UTC')::date
-    )
-    SELECT tt."id" AS "themeId", tt."name" AS "themeName", tt."color",
-           dates."date", COALESCE(counts."count", 0)::bigint AS "count"
-    FROM top_themes AS tt
-    CROSS JOIN dates
-    LEFT JOIN counts
-      ON counts."themeId" = tt."id" AND counts."date" = dates."date"
-    ORDER BY tt."name" ASC, dates."date" ASC
-  `);
-
-  const seriesByTheme = new Map<string, ThemeTrendSeries>();
-
-  for (const row of themeDayRows) {
-    const existing = seriesByTheme.get(row.themeId);
-    const point: TrendSeriesPoint = {
-      date: row.date.toISOString().slice(0, 10),
-      label: formatVolumeLabel(row.date),
-      count: Number(row.count),
-    };
-
-    if (existing) {
-      existing.points.push(point);
-      existing.totalCount += point.count;
-    } else {
-      seriesByTheme.set(row.themeId, {
-        id: row.themeId,
-        name: row.themeName,
-        color: row.color,
-        points: [point],
-        totalCount: point.count,
-      });
-    }
-  }
-
-  const themeSeries = Array.from(seriesByTheme.values()).sort(
-    (a, b) => b.totalCount - a.totalCount,
-  );
-
-  // Spike detection: flag any day where a theme's volume jumps well above its
-  // own recent (trailing) average — a simple, explainable moving-baseline check.
-  const spikes: TrendSpike[] = [];
-
-  for (const series of themeSeries) {
-    for (let i = 0; i < series.points.length; i += 1) {
-      const windowStart = Math.max(0, i - SPIKE_BASELINE_WINDOW_DAYS);
-      const baselinePoints = series.points.slice(windowStart, i);
-
-      if (baselinePoints.length < 2) {
-        continue; // not enough history yet to judge a spike
-      }
-
-      const baselineAverage =
-        baselinePoints.reduce((sum, point) => sum + point.count, 0) / baselinePoints.length;
-      const current = series.points[i];
-
-      if (current.count < SPIKE_MIN_COUNT) {
-        continue; // too small to be meaningful
-      }
-
-      const increase = baselineAverage === 0 ? current.count : (current.count - baselineAverage) / baselineAverage;
-
-      if (increase >= SPIKE_INCREASE_THRESHOLD) {
-        spikes.push({
-          themeId: series.id,
-          themeName: series.name,
-          color: series.color,
-          date: current.date,
-          label: current.label,
-          count: current.count,
-          baselineAverage: Math.round(baselineAverage * 10) / 10,
-          percentageIncrease: Math.round(increase * 1000) / 10,
-        });
-      }
-    }
-  }
-
-  spikes.sort((a, b) => b.percentageIncrease - a.percentageIncrease);
-
-  return {
-    period: {
-      dateFrom: query.dateFrom,
-      dateTo: query.dateTo,
-      dayCount,
     },
-    themeSeries,
-    spikes,
-  };
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      timeout: 20000,
+    },
+  );
 }

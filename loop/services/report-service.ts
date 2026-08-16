@@ -1,22 +1,19 @@
+import "server-only";
+
 import { ApiError } from "@google/genai";
 import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { GEMINI_REPORT_MODEL, gemini } from "@/lib/gemini";
-import {
-  buildVoiceOfCustomerPrompt,
-  VOC_REPORT_SYSTEM_INSTRUCTION,
-} from "@/lib/report-prompts";
+import { buildVoiceOfCustomerPrompt, VOC_REPORT_SYSTEM_INSTRUCTION } from "@/lib/report-prompts";
+import { createReportShareToken, hashReportShareToken } from "@/lib/report-sharing";
 import {
   reportNarrativeModelResponseJsonSchema,
   reportNarrativeModelResponseSchema,
   storedReportContentSchema,
   type ReportNarrativeModelResponse,
 } from "@/lib/report-schemas";
-import type {
-  CreateReportInput,
-  ReportListQuery,
-} from "@/lib/report-validation";
+import type { CreateReportInput, ReportListQuery } from "@/lib/report-validation";
 import type { ApiErrorCode } from "@/types/api";
 import type {
   ReportEvidenceItem,
@@ -25,6 +22,7 @@ import type {
   ReportPeriodSnapshot,
   ReportSentimentMetric,
   ReportThemeMetric,
+  SharedVoiceOfCustomerReportDetail,
   VoiceOfCustomerReportContent,
   VoiceOfCustomerReportDetail,
 } from "@/types/report";
@@ -106,35 +104,22 @@ function formatUtcDate(date: Date): string {
 }
 
 function dayCountInclusive(start: Date, end: Date): number {
-  return (
-    Math.floor(
-      (end.getTime() - start.getTime()) / MILLISECONDS_PER_DAY,
-    ) + 1
-  );
+  return Math.floor((end.getTime() - start.getTime()) / MILLISECONDS_PER_DAY) + 1;
 }
 
-function previousPeriod(
-  currentStart: Date,
-  dayCount: number,
-): {
+function previousPeriod(currentStart: Date, dayCount: number): {
   start: Date;
   end: Date;
   endExclusive: Date;
 } {
   const end = new Date(currentStart);
   end.setUTCDate(end.getUTCDate() - 1);
-
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - (dayCount - 1));
-
   const endExclusive = new Date(end);
   endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
 
-  return {
-    start,
-    end,
-    endExclusive,
-  };
+  return { start, end, endExclusive };
 }
 
 function percentage(numerator: number, denominator: number): number {
@@ -149,19 +134,14 @@ function percentagePointDelta(current: number, previous: number): number {
   return Math.round((current - previous) * 10) / 10;
 }
 
-function serializeEvidence(
-  candidate: EvidenceCandidate,
-): ReportEvidenceItem {
+function serializeEvidence(candidate: EvidenceCandidate): ReportEvidenceItem {
   return {
     feedbackId: candidate.id,
     content: candidate.content,
     channel: candidate.channel,
     customerLabel: candidate.customerLabel,
     sentiment: candidate.sentiment,
-    sentimentScore:
-      candidate.sentimentScore === null
-        ? null
-        : Number(candidate.sentimentScore),
+    sentimentScore: candidate.sentimentScore === null ? null : Number(candidate.sentimentScore),
     featureArea: candidate.featureArea,
     createdAt: candidate.createdAt.toISOString(),
     themes: candidate.themes.map((assignment) => ({
@@ -178,16 +158,11 @@ function compareEvidenceCandidates(
   themeRank: ReadonlyMap<string, number>,
 ): number {
   const firstRank = Math.min(
-    ...first.themes.map(
-      (assignment) => themeRank.get(assignment.theme.id) ?? 999,
-    ),
+    ...first.themes.map((assignment) => themeRank.get(assignment.theme.id) ?? 999),
     999,
   );
-
   const secondRank = Math.min(
-    ...second.themes.map(
-      (assignment) => themeRank.get(assignment.theme.id) ?? 999,
-    ),
+    ...second.themes.map((assignment) => themeRank.get(assignment.theme.id) ?? 999),
     999,
   );
 
@@ -197,23 +172,12 @@ function compareEvidenceCandidates(
 
   const firstNegative = first.sentiment === "NEG" ? 1 : 0;
   const secondNegative = second.sentiment === "NEG" ? 1 : 0;
-
   if (firstNegative !== secondNegative) {
     return secondNegative - firstNegative;
   }
 
-  const firstStrength = Math.abs(
-    first.sentimentScore === null
-      ? 0
-      : Number(first.sentimentScore),
-  );
-
-  const secondStrength = Math.abs(
-    second.sentimentScore === null
-      ? 0
-      : Number(second.sentimentScore),
-  );
-
+  const firstStrength = Math.abs(first.sentimentScore === null ? 0 : Number(first.sentimentScore));
+  const secondStrength = Math.abs(second.sentimentScore === null ? 0 : Number(second.sentimentScore));
   if (firstStrength !== secondStrength) {
     return secondStrength - firstStrength;
   }
@@ -225,22 +189,13 @@ function selectEvidence(
   candidates: readonly EvidenceCandidate[],
   topThemes: readonly ReportThemeMetric[],
 ): ReportEvidenceItem[] {
-  const themeRank = new Map(
-    topThemes.map((theme, index) => [theme.id, index]),
-  );
-
+  const themeRank = new Map(topThemes.map((theme, index) => [theme.id, index]));
   const selected = new Map<string, EvidenceCandidate>();
 
   for (const theme of topThemes) {
     const candidate = candidates
-      .filter((item) =>
-        item.themes.some(
-          (assignment) => assignment.theme.id === theme.id,
-        ),
-      )
-      .sort((first, second) =>
-        compareEvidenceCandidates(first, second, themeRank),
-      )[0];
+      .filter((item) => item.themes.some((assignment) => assignment.theme.id === theme.id))
+      .sort((first, second) => compareEvidenceCandidates(first, second, themeRank))[0];
 
     if (candidate) {
       selected.set(candidate.id, candidate);
@@ -258,16 +213,13 @@ function selectEvidence(
 
     for (const candidate of ranked) {
       selected.set(candidate.id, candidate);
-
       if (selected.size >= MAX_EVIDENCE_ITEMS) {
         break;
       }
     }
   }
 
-  return [...selected.values()]
-    .slice(0, MAX_EVIDENCE_ITEMS)
-    .map(serializeEvidence);
+  return [...selected.values()].slice(0, MAX_EVIDENCE_ITEMS).map(serializeEvidence);
 }
 
 async function precomputeWorkspaceReport(
@@ -277,16 +229,8 @@ async function precomputeWorkspaceReport(
   const currentStart = utcDateStart(input.dateFrom);
   const currentEnd = utcDateStart(input.dateTo);
   const currentEndExclusive = utcDayAfter(input.dateTo);
-
-  const dayCount = dayCountInclusive(
-    currentStart,
-    currentEnd,
-  );
-
-  const previous = previousPeriod(
-    currentStart,
-    dayCount,
-  );
+  const dayCount = dayCountInclusive(currentStart, currentEnd);
+  const previous = previousPeriod(currentStart, dayCount);
 
   const currentWhere: Prisma.FeedbackWhereInput = {
     workspaceId,
@@ -295,7 +239,6 @@ async function precomputeWorkspaceReport(
       lt: currentEndExclusive,
     },
   };
-
   const previousWhere: Prisma.FeedbackWhereInput = {
     workspaceId,
     createdAt: {
@@ -304,212 +247,155 @@ async function precomputeWorkspaceReport(
     },
   };
 
-  const totalFeedback = await db.feedback.count({
-    where: currentWhere,
-  });
-
-  const previousTotalFeedback = await db.feedback.count({
-    where: previousWhere,
-  });
-
-  const classifiedFeedback = await db.feedback.count({
-    where: {
-      ...currentWhere,
-      sentiment: {
-        not: null,
-      },
-    },
-  });
-
-  const previousClassifiedFeedback = await db.feedback.count({
-    where: {
-      ...previousWhere,
-      sentiment: {
-        not: null,
-      },
-    },
-  });
-
-  const currentSentimentRows =
-    await db.$queryRaw<SentimentRow[]>(Prisma.sql`
-      SELECT f."sentiment", COUNT(*)::bigint AS "count"
-      FROM "Feedback" AS f
-      WHERE f."workspaceId" = CAST(${workspaceId} AS uuid)
-        AND f."createdAt" >= ${currentStart}
-        AND f."createdAt" < ${currentEndExclusive}
-        AND f."sentiment" IS NOT NULL
-      GROUP BY f."sentiment"
-    `);
-
-  const previousSentimentRows =
-    await db.$queryRaw<SentimentRow[]>(Prisma.sql`
-      SELECT f."sentiment", COUNT(*)::bigint AS "count"
-      FROM "Feedback" AS f
-      WHERE f."workspaceId" = CAST(${workspaceId} AS uuid)
-        AND f."createdAt" >= ${previous.start}
-        AND f."createdAt" < ${previous.endExclusive}
-        AND f."sentiment" IS NOT NULL
-      GROUP BY f."sentiment"
-    `);
-
-  const themeRows = await db.$queryRaw<ThemeRow[]>(Prisma.sql`
-    SELECT t."id", t."name", t."color", COUNT(*)::bigint AS "count"
-    FROM "FeedbackTheme" AS ft
-    INNER JOIN "Feedback" AS f
-      ON f."id" = ft."feedbackId"
-      AND f."workspaceId" = CAST(${workspaceId} AS uuid)
-    INNER JOIN "Theme" AS t
-      ON t."id" = ft."themeId"
-      AND t."workspaceId" = CAST(${workspaceId} AS uuid)
-    WHERE ft."workspaceId" = CAST(${workspaceId} AS uuid)
-      AND f."createdAt" >= ${currentStart}
-      AND f."createdAt" < ${currentEndExclusive}
-    GROUP BY t."id", t."name", t."color"
-    ORDER BY "count" DESC, t."name" ASC
-    LIMIT ${MAX_TOP_THEMES}
-  `);
-
-  const evidenceCandidates =
-    await db.feedback.findMany({
-      where: currentWhere,
-      select: {
-        id: true,
-        content: true,
-        channel: true,
-        customerLabel: true,
-        sentiment: true,
-        sentimentScore: true,
-        featureArea: true,
-        createdAt: true,
-        themes: {
-          where: {
-            workspaceId,
-          },
+  return db.$transaction(
+    async (transaction) => {
+      const [
+        totalFeedback,
+        previousTotalFeedback,
+        classifiedFeedback,
+        previousClassifiedFeedback,
+        currentSentimentRows,
+        previousSentimentRows,
+        themeRows,
+        evidenceCandidates,
+      ] = await Promise.all([
+        transaction.feedback.count({ where: currentWhere }),
+        transaction.feedback.count({ where: previousWhere }),
+        transaction.feedback.count({ where: { ...currentWhere, sentiment: { not: null } } }),
+        transaction.feedback.count({ where: { ...previousWhere, sentiment: { not: null } } }),
+        transaction.$queryRaw<SentimentRow[]>(Prisma.sql`
+          SELECT f."sentiment", COUNT(*)::bigint AS "count"
+          FROM "Feedback" AS f
+          WHERE f."workspaceId" = CAST(${workspaceId} AS uuid)
+            AND f."createdAt" >= ${currentStart}
+            AND f."createdAt" < ${currentEndExclusive}
+            AND f."sentiment" IS NOT NULL
+          GROUP BY f."sentiment"
+        `),
+        transaction.$queryRaw<SentimentRow[]>(Prisma.sql`
+          SELECT f."sentiment", COUNT(*)::bigint AS "count"
+          FROM "Feedback" AS f
+          WHERE f."workspaceId" = CAST(${workspaceId} AS uuid)
+            AND f."createdAt" >= ${previous.start}
+            AND f."createdAt" < ${previous.endExclusive}
+            AND f."sentiment" IS NOT NULL
+          GROUP BY f."sentiment"
+        `),
+        transaction.$queryRaw<ThemeRow[]>(Prisma.sql`
+          SELECT t."id", t."name", t."color", COUNT(*)::bigint AS "count"
+          FROM "FeedbackTheme" AS ft
+          INNER JOIN "Feedback" AS f
+            ON f."id" = ft."feedbackId"
+            AND f."workspaceId" = CAST(${workspaceId} AS uuid)
+          INNER JOIN "Theme" AS t
+            ON t."id" = ft."themeId"
+            AND t."workspaceId" = CAST(${workspaceId} AS uuid)
+          WHERE ft."workspaceId" = CAST(${workspaceId} AS uuid)
+            AND f."createdAt" >= ${currentStart}
+            AND f."createdAt" < ${currentEndExclusive}
+          GROUP BY t."id", t."name", t."color"
+          ORDER BY "count" DESC, t."name" ASC
+          LIMIT ${MAX_TOP_THEMES}
+        `),
+        transaction.feedback.findMany({
+          where: currentWhere,
           select: {
-            confidence: true,
-            theme: {
+            id: true,
+            content: true,
+            channel: true,
+            customerLabel: true,
+            sentiment: true,
+            sentimentScore: true,
+            featureArea: true,
+            createdAt: true,
+            themes: {
+              where: { workspaceId },
               select: {
-                id: true,
-                name: true,
+                confidence: true,
+                theme: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
+          orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+          take: MAX_EVIDENCE_CANDIDATES,
+        }),
+      ]);
+
+      if (totalFeedback === 0) {
+        throw new ReportServiceError(
+          "REPORT_PERIOD_EMPTY",
+          "There is no feedback in the selected period, so LOOP cannot generate an evidence-backed report.",
+          422,
+        );
+      }
+
+      const currentSentiment = new Map(
+        currentSentimentRows.map((row) => [row.sentiment, Number(row.count)]),
+      );
+      const previousSentiment = new Map(
+        previousSentimentRows.map((row) => [row.sentiment, Number(row.count)]),
+      );
+      const sentiment: ReportSentimentMetric[] = (['POS', 'NEU', 'NEG'] as const).map((value) => {
+        const count = currentSentiment.get(value) ?? 0;
+        const previousCount = previousSentiment.get(value) ?? 0;
+        const currentPercentage = percentage(count, classifiedFeedback);
+        const previousPercentage = percentage(previousCount, previousClassifiedFeedback);
+
+        return {
+          sentiment: value,
+          label: SENTIMENT_LABELS[value],
+          count,
+          percentage: currentPercentage,
+          previousCount,
+          previousPercentage,
+          deltaPercentagePoints: percentagePointDelta(currentPercentage, previousPercentage),
+        };
+      });
+
+      const topThemes: ReportThemeMetric[] = themeRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        color: row.color,
+        count: Number(row.count),
+        percentage: percentage(Number(row.count), totalFeedback),
+      }));
+
+      return {
+        period: {
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+          dayCount,
+          previousDateFrom: formatUtcDate(previous.start),
+          previousDateTo: formatUtcDate(previous.end),
         },
-      },
-      orderBy: [
-        {
-          createdAt: "desc",
+        stats: {
+          totalFeedback,
+          previousTotalFeedback,
+          classifiedFeedback,
+          previousClassifiedFeedback,
+          classificationCoverage: percentage(classifiedFeedback, totalFeedback),
+          previousClassificationCoverage: percentage(
+            previousClassifiedFeedback,
+            previousTotalFeedback,
+          ),
         },
-        {
-          id: "asc",
-        },
-      ],
-      take: MAX_EVIDENCE_CANDIDATES,
-    });
-
-  if (totalFeedback === 0) {
-    throw new ReportServiceError(
-      "REPORT_PERIOD_EMPTY",
-      "There is no feedback in the selected period, so LOOP cannot generate an evidence-backed report.",
-      422,
-    );
-  }
-
-  const currentSentiment = new Map(
-    currentSentimentRows.map((row) => [
-      row.sentiment,
-      Number(row.count),
-    ]),
-  );
-
-  const previousSentiment = new Map(
-    previousSentimentRows.map((row) => [
-      row.sentiment,
-      Number(row.count),
-    ]),
-  );
-
-  const sentiment: ReportSentimentMetric[] = (
-    ["POS", "NEU", "NEG"] as const
-  ).map((value) => {
-    const count = currentSentiment.get(value) ?? 0;
-    const previousCount = previousSentiment.get(value) ?? 0;
-
-    const currentPercentage = percentage(
-      count,
-      classifiedFeedback,
-    );
-
-    const previousPercentage = percentage(
-      previousCount,
-      previousClassifiedFeedback,
-    );
-
-    return {
-      sentiment: value,
-      label: SENTIMENT_LABELS[value],
-      count,
-      percentage: currentPercentage,
-      previousCount,
-      previousPercentage,
-      deltaPercentagePoints: percentagePointDelta(
-        currentPercentage,
-        previousPercentage,
-      ),
-    };
-  });
-
-  const topThemes: ReportThemeMetric[] = themeRows.map(
-    (row) => ({
-      id: row.id,
-      name: row.name,
-      color: row.color,
-      count: Number(row.count),
-      percentage: percentage(
-        Number(row.count),
-        totalFeedback,
-      ),
-    }),
-  );
-
-  return {
-    period: {
-      dateFrom: input.dateFrom,
-      dateTo: input.dateTo,
-      dayCount,
-      previousDateFrom: formatUtcDate(previous.start),
-      previousDateTo: formatUtcDate(previous.end),
+        sentiment,
+        topThemes,
+        evidence: selectEvidence(evidenceCandidates, topThemes),
+      };
     },
-    stats: {
-      totalFeedback,
-      previousTotalFeedback,
-      classifiedFeedback,
-      previousClassifiedFeedback,
-      classificationCoverage: percentage(
-        classifiedFeedback,
-        totalFeedback,
-      ),
-      previousClassificationCoverage: percentage(
-        previousClassifiedFeedback,
-        previousTotalFeedback,
-      ),
-    },
-    sentiment,
-    topThemes,
-    evidence: selectEvidence(
-      evidenceCandidates,
-      topThemes,
-    ),
-  };
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+  );
 }
 
 function stripMarkdownCodeFence(value: string): string {
   const trimmed = value.trim();
-
-  const fenced = trimmed.match(
-    /^```(?:json)?\s*([\s\S]*?)\s*```$/i,
-  );
-
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return fenced?.[1]?.trim() ?? trimmed;
 }
 
@@ -517,91 +403,49 @@ function validateNarrativeReferences(
   narrative: ReportNarrativeModelResponse,
   data: PrecomputedReportData,
 ): boolean {
-  const evidenceIds = new Set(
-    data.evidence.map((item) => item.feedbackId),
-  );
+  const evidenceIds = new Set(data.evidence.map((item) => item.feedbackId));
+  const themeIds = new Set(data.topThemes.map((theme) => theme.id));
 
-  const themeIds = new Set(
-    data.topThemes.map((theme) => theme.id),
-  );
-
-  if (
-    narrative.notableQuoteIds.some(
-      (id) => !evidenceIds.has(id),
-    )
-  ) {
+  if (narrative.notableQuoteIds.some((id) => !evidenceIds.has(id))) {
     return false;
   }
 
-  if (
-    narrative.themeInsights.some(
-      (item) => !themeIds.has(item.themeId),
-    )
-  ) {
+  if (narrative.themeInsights.some((item) => !themeIds.has(item.themeId))) {
     return false;
   }
 
   return narrative.recommendedActions.every(
     (action) =>
-      action.relatedThemeIds.every((id) =>
-        themeIds.has(id),
-      ) &&
-      action.evidenceFeedbackIds.every((id) =>
-        evidenceIds.has(id),
-      ),
+      action.relatedThemeIds.every((id) => themeIds.has(id)) &&
+      action.evidenceFeedbackIds.every((id) => evidenceIds.has(id)),
   );
 }
 
 async function generateNarrative(
   data: PrecomputedReportData,
-): Promise<{
-  narrative: ReportNarrativeModelResponse;
-  model: string;
-}> {
-  for (
-    let attempt = 1;
-    attempt <= MAX_REPORT_ATTEMPTS;
-    attempt += 1
-  ) {
+): Promise<{ narrative: ReportNarrativeModelResponse; model: string }> {
+  for (let attempt = 1; attempt <= MAX_REPORT_ATTEMPTS; attempt += 1) {
     try {
-      const response =
-        await gemini.models.generateContent({
-          model: GEMINI_REPORT_MODEL,
-          contents: buildVoiceOfCustomerPrompt(data),
-          config: {
-            systemInstruction:
-              VOC_REPORT_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseJsonSchema:
-              reportNarrativeModelResponseJsonSchema,
-          },
-        });
-
+      const response = await gemini.models.generateContent({
+        model: GEMINI_REPORT_MODEL,
+        contents: buildVoiceOfCustomerPrompt(data),
+        config: {
+          systemInstruction: VOC_REPORT_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseJsonSchema: reportNarrativeModelResponseJsonSchema,
+        },
+      });
       const rawText = response.text?.trim();
 
       if (rawText) {
         try {
-          const parsedJson = JSON.parse(
-            stripMarkdownCodeFence(rawText),
-          ) as unknown;
+          const parsedJson = JSON.parse(stripMarkdownCodeFence(rawText)) as unknown;
+          const parsed = reportNarrativeModelResponseSchema.safeParse(parsedJson);
 
-          const parsed =
-            reportNarrativeModelResponseSchema.safeParse(
-              parsedJson,
-            );
-
-          if (
-            parsed.success &&
-            validateNarrativeReferences(
-              parsed.data,
-              data,
-            )
-          ) {
+          if (parsed.success && validateNarrativeReferences(parsed.data, data)) {
             return {
               narrative: parsed.data,
-              model:
-                response.modelVersion ??
-                GEMINI_REPORT_MODEL,
+              model: response.modelVersion ?? GEMINI_REPORT_MODEL,
             };
           }
         } catch {
@@ -622,63 +466,23 @@ async function generateNarrative(
       }
 
       if (error instanceof ApiError) {
-        const status =
-          typeof error.status === "number"
-            ? error.status
-            : null;
+        const status = typeof error.status === "number" ? error.status : null;
+        const retryable = status === 408 || status === 429 || (status !== null && status >= 500);
 
-        const retryable =
-          status === 408 ||
-          status === 429 ||
-          (status !== null && status >= 500);
-
-        if (
-          retryable &&
-          attempt < MAX_REPORT_ATTEMPTS
-        ) {
-          const delayMs = 1500 * 2 ** (attempt - 1);
-
-          console.warn(
-            `Gemini report generation temporarily unavailable. Retrying in ${delayMs}ms.`,
-            {
-              attempt,
-              status,
-            },
-          );
-
-          await new Promise((resolve) =>
-            setTimeout(resolve, delayMs),
-          );
-
+        if (retryable && attempt < MAX_REPORT_ATTEMPTS) {
           continue;
         }
 
         if (retryable) {
-          console.error(
-            "Gemini report provider unavailable after retries.",
-            {
-              attempt,
-              status,
-              error,
-            },
-          );
-
           throw new ReportServiceError(
             "REPORT_PROVIDER_UNAVAILABLE",
-            "Google Gemini is temporarily unavailable, so the report could not be generated. Please try again in a moment.",
+            "Google Gemini is temporarily unavailable, so the report could not be generated.",
             503,
           );
         }
       }
 
-      console.error(
-        "Voice-of-Customer narrative generation failed.",
-        {
-          attempt,
-          error,
-        },
-      );
-
+      console.error("Voice-of-Customer narrative generation failed.", { attempt, error });
       throw new ReportServiceError(
         "REPORT_GENERATE_FAILED",
         "LOOP could not generate the Voice-of-Customer report. Please try again.",
@@ -694,25 +498,15 @@ async function generateNarrative(
   );
 }
 
-function defaultReportTitle(
-  dateFrom: string,
-  dateTo: string,
-): string {
+function defaultReportTitle(dateFrom: string, dateTo: string): string {
   const formatter = new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
   });
-
-  const start = formatter.format(
-    utcDateStart(dateFrom),
-  );
-
-  const end = formatter.format(
-    utcDateStart(dateTo),
-  );
-
+  const start = formatter.format(utcDateStart(dateFrom));
+  const end = formatter.format(utcDateStart(dateTo));
   return `Voice of Customer · ${start} – ${end}`;
 }
 
@@ -721,17 +515,9 @@ export async function generateWorkspaceVoiceOfCustomerReport(
   generatedById: string,
   input: CreateReportInput,
 ): Promise<VoiceOfCustomerReportDetail> {
-  const precomputed =
-    await precomputeWorkspaceReport(
-      workspaceId,
-      input,
-    );
-
-  const generated =
-    await generateNarrative(precomputed);
-
+  const precomputed = await precomputeWorkspaceReport(workspaceId, input);
+  const generated = await generateNarrative(precomputed);
   const generatedAt = new Date().toISOString();
-
   const content: VoiceOfCustomerReportContent = {
     schemaVersion: "1",
     generatedAt,
@@ -743,18 +529,10 @@ export async function generateWorkspaceVoiceOfCustomerReport(
 
   const stored = await db.report.create({
     data: {
-      title:
-        input.title ??
-        defaultReportTitle(
-          input.dateFrom,
-          input.dateTo,
-        ),
+      title: input.title ?? defaultReportTitle(input.dateFrom, input.dateTo),
       periodStart: utcDateStart(input.dateFrom),
-      periodEnd: new Date(
-        `${input.dateTo}T23:59:59.999Z`,
-      ),
-      contentJson:
-        content as unknown as Prisma.InputJsonValue,
+      periodEnd: new Date(`${input.dateTo}T23:59:59.999Z`),
+      contentJson: content as unknown as Prisma.InputJsonValue,
       workspaceId,
       generatedById,
     },
@@ -763,10 +541,7 @@ export async function generateWorkspaceVoiceOfCustomerReport(
     },
   });
 
-  const report = await getWorkspaceReport(
-    workspaceId,
-    stored.id,
-  );
+  const report = await getWorkspaceReport(workspaceId, stored.id);
 
   if (!report) {
     throw new ReportServiceError(
@@ -785,7 +560,6 @@ function buildReportWhere(
 ): Prisma.ReportWhereInput {
   return {
     workspaceId,
-
     ...(query.search
       ? {
           title: {
@@ -794,32 +568,14 @@ function buildReportWhere(
           },
         }
       : {}),
-
     ...(query.periodFrom || query.periodTo
       ? {
           AND: [
             ...(query.periodFrom
-              ? [
-                  {
-                    periodEnd: {
-                      gte: utcDateStart(
-                        query.periodFrom,
-                      ),
-                    },
-                  },
-                ]
+              ? [{ periodEnd: { gte: utcDateStart(query.periodFrom) } }]
               : []),
-
             ...(query.periodTo
-              ? [
-                  {
-                    periodStart: {
-                      lt: utcDayAfter(
-                        query.periodTo,
-                      ),
-                    },
-                  },
-                ]
+              ? [{ periodStart: { lt: utcDayAfter(query.periodTo) } }]
               : []),
           ],
         }
@@ -827,47 +583,16 @@ function buildReportWhere(
   };
 }
 
-function buildReportOrder(
-  query: ReportListQuery,
-): Prisma.ReportOrderByWithRelationInput[] {
+function buildReportOrder(query: ReportListQuery): Prisma.ReportOrderByWithRelationInput[] {
   const direction = query.sortOrder;
 
   switch (query.sortBy) {
     case "title":
-      return [
-        {
-          title: direction,
-        },
-        {
-          createdAt: "desc",
-        },
-        {
-          id: "asc",
-        },
-      ];
-
+      return [{ title: direction }, { createdAt: "desc" }, { id: "asc" }];
     case "periodStart":
-      return [
-        {
-          periodStart: direction,
-        },
-        {
-          createdAt: "desc",
-        },
-        {
-          id: "asc",
-        },
-      ];
-
+      return [{ periodStart: direction }, { createdAt: "desc" }, { id: "asc" }];
     case "createdAt":
-      return [
-        {
-          createdAt: direction,
-        },
-        {
-          id: "asc",
-        },
-      ];
+      return [{ createdAt: direction }, { id: "asc" }];
   }
 }
 
@@ -875,95 +600,60 @@ export async function listWorkspaceReports(
   workspaceId: string,
   query: ReportListQuery,
 ): Promise<ReportPage> {
-  const where = buildReportWhere(
-    workspaceId,
-    query,
-  );
+  const where = buildReportWhere(workspaceId, query);
 
   return db.$transaction(
     async (transaction) => {
-      const totalItems =
-        await transaction.report.count({
-          where,
-        });
-
-      const totalPages = Math.max(
-        1,
-        Math.ceil(
-          totalItems / query.pageSize,
-        ),
-      );
-
-      const page = Math.min(
-        query.page,
-        totalPages,
-      );
-
-      const rows =
-        await transaction.report.findMany({
-          where,
-          select: {
-            id: true,
-            title: true,
-            periodStart: true,
-            periodEnd: true,
-            createdAt: true,
-            generatedBy: {
-              select: {
-                name: true,
-                email: true,
-              },
+      const totalItems = await transaction.report.count({ where });
+      const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+      const page = Math.min(query.page, totalPages);
+      const rows = await transaction.report.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          periodStart: true,
+          periodEnd: true,
+          createdAt: true,
+          generatedBy: {
+            select: {
+              name: true,
+              email: true,
             },
           },
-          orderBy: buildReportOrder(query),
-          skip:
-            (page - 1) * query.pageSize,
-          take: query.pageSize,
-        });
+        },
+        orderBy: buildReportOrder(query),
+        skip: (page - 1) * query.pageSize,
+        take: query.pageSize,
+      });
 
       return {
-        items: rows.map(
-          (
-            row,
-          ): ReportListItem => ({
-            id: row.id,
-            title: row.title,
-            periodStart:
-              row.periodStart.toISOString(),
-            periodEnd:
-              row.periodEnd.toISOString(),
-            createdAt:
-              row.createdAt.toISOString(),
-            generatedBy:
-              row.generatedBy,
-          }),
-        ),
-
+        items: rows.map((row): ReportListItem => ({
+          id: row.id,
+          title: row.title,
+          periodStart: row.periodStart.toISOString(),
+          periodEnd: row.periodEnd.toISOString(),
+          createdAt: row.createdAt.toISOString(),
+          generatedBy: row.generatedBy,
+        })),
         pagination: {
           page,
           pageSize: query.pageSize,
           totalItems,
           totalPages,
         },
-
         query: {
           page,
           pageSize: query.pageSize,
           search: query.search,
-          periodFrom:
-            query.periodFrom ?? null,
-          periodTo:
-            query.periodTo ?? null,
+          periodFrom: query.periodFrom ?? null,
+          periodTo: query.periodTo ?? null,
           sortBy: query.sortBy,
           sortOrder: query.sortOrder,
         },
       };
     },
-    {
-      isolationLevel:
-        Prisma.TransactionIsolationLevel
-          .RepeatableRead,
-    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
   );
 }
 
@@ -976,7 +666,6 @@ export async function getWorkspaceReport(
       id: reportId,
       workspaceId,
     },
-
     select: {
       id: true,
       title: true,
@@ -985,7 +674,8 @@ export async function getWorkspaceReport(
       contentJson: true,
       createdAt: true,
       updatedAt: true,
-
+      shareEnabled: true,
+      shareCreatedAt: true,
       generatedBy: {
         select: {
           name: true,
@@ -999,22 +689,14 @@ export async function getWorkspaceReport(
     return null;
   }
 
-  const parsedContent =
-    storedReportContentSchema.safeParse(
-      row.contentJson,
-    );
+  const parsedContent = storedReportContentSchema.safeParse(row.contentJson);
 
   if (!parsedContent.success) {
-    console.error(
-      "Stored Voice-of-Customer report content failed validation.",
-      {
-        workspaceId,
-        reportId,
-        issues:
-          parsedContent.error.issues,
-      },
-    );
-
+    console.error("Stored Voice-of-Customer report content failed validation.", {
+      workspaceId,
+      reportId,
+      issues: parsedContent.error.issues,
+    });
     throw new ReportServiceError(
       "REPORT_CONTENT_INVALID",
       "This saved report could not be validated. Generate a new report or contact an administrator.",
@@ -1025,15 +707,122 @@ export async function getWorkspaceReport(
   return {
     id: row.id,
     title: row.title,
-    periodStart:
-      row.periodStart.toISOString(),
-    periodEnd:
-      row.periodEnd.toISOString(),
-    createdAt:
-      row.createdAt.toISOString(),
-    updatedAt:
-      row.updatedAt.toISOString(),
+    periodStart: row.periodStart.toISOString(),
+    periodEnd: row.periodEnd.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     generatedBy: row.generatedBy,
+    sharing: {
+      enabled: row.shareEnabled,
+      createdAt: row.shareCreatedAt?.toISOString() ?? null,
+    },
+    content: parsedContent.data,
+  };
+}
+
+export async function rotateWorkspaceReportShare(
+  workspaceId: string,
+  reportId: string,
+): Promise<{ token: string; createdAt: string }> {
+  const { token, tokenHash } = createReportShareToken();
+  const createdAt = new Date();
+
+  const updated = await db.report.updateMany({
+    where: {
+      id: reportId,
+      workspaceId,
+    },
+    data: {
+      shareTokenHash: tokenHash,
+      shareEnabled: true,
+      shareCreatedAt: createdAt,
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new ReportServiceError(
+      "REPORT_NOT_FOUND",
+      "The requested report was not found in this workspace.",
+      404,
+    );
+  }
+
+  return {
+    token,
+    createdAt: createdAt.toISOString(),
+  };
+}
+
+export async function revokeWorkspaceReportShare(
+  workspaceId: string,
+  reportId: string,
+): Promise<void> {
+  const updated = await db.report.updateMany({
+    where: {
+      id: reportId,
+      workspaceId,
+    },
+    data: {
+      shareTokenHash: null,
+      shareEnabled: false,
+      shareCreatedAt: null,
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new ReportServiceError(
+      "REPORT_NOT_FOUND",
+      "The requested report was not found in this workspace.",
+      404,
+    );
+  }
+}
+
+export async function getSharedVoiceOfCustomerReport(
+  token: string,
+): Promise<SharedVoiceOfCustomerReportDetail | null> {
+  const tokenHash = hashReportShareToken(token);
+  const row = await db.report.findFirst({
+    where: {
+      shareEnabled: true,
+      shareTokenHash: tokenHash,
+    },
+    select: {
+      id: true,
+      title: true,
+      periodStart: true,
+      periodEnd: true,
+      contentJson: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  const parsedContent = storedReportContentSchema.safeParse(row.contentJson);
+
+  if (!parsedContent.success) {
+    console.error("Shared Voice-of-Customer report content failed validation.", {
+      reportId: row.id,
+      issues: parsedContent.error.issues,
+    });
+    throw new ReportServiceError(
+      "REPORT_CONTENT_INVALID",
+      "This shared report could not be validated.",
+      500,
+    );
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    periodStart: row.periodStart.toISOString(),
+    periodEnd: row.periodEnd.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     content: parsedContent.data,
   };
 }

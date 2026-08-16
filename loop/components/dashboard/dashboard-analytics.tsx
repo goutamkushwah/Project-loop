@@ -49,12 +49,30 @@ function formatPercentage(value: number): string {
   return `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`;
 }
 
+function formatScore(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+
+  return value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
+}
+
 function StatCard({ label, value, description }: StatCardProps) {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <p className="text-sm font-bold text-slate-600">{label}</p>
       <p className="mt-3 text-3xl font-black tracking-tight text-loop-900">{value}</p>
       <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+    </article>
+  );
+}
+
+function AiMetric({ label, value, description }: StatCardProps) {
+  return (
+    <article className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">{label}</p>
+      <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{value}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
     </article>
   );
 }
@@ -79,6 +97,8 @@ function ChartEmptyState({ title, description }: { title: string; description: s
 export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
   const sentimentHasData = data.stats.classifiedItems > 0;
   const themesHaveData = data.topThemes.length > 0;
+  const attentionCount =
+    data.ai.failedClassifications + data.ai.reviewRequiredClassifications;
 
   return (
     <div className="space-y-6">
@@ -103,6 +123,47 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
           value={formatPercentage(data.stats.classificationCoverage)}
           description={`${formatNumber(data.stats.classifiedItems)} of ${formatNumber(data.stats.totalItems)} items contain stored sentiment.`}
         />
+      </section>
+
+      <section className="rounded-3xl border border-violet-200 bg-violet-50/70 p-5 shadow-sm sm:p-7">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-violet-700">
+              Gemini intelligence
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">Stored AI results, wired into analytics</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              These values come from persisted classification and theme-assignment records. Opening the
+              dashboard does not trigger new model calls.
+            </p>
+          </div>
+          <span className="w-fit rounded-full bg-white px-3 py-1.5 text-xs font-bold text-violet-800 ring-1 ring-inset ring-violet-200">
+            Real database values
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <AiMetric
+            label="Completed"
+            value={formatNumber(data.ai.completedClassifications)}
+            description={`${formatNumber(data.ai.pendingClassifications)} pending · ${formatNumber(data.ai.processingClassifications)} processing`}
+          />
+          <AiMetric
+            label="Needs attention"
+            value={formatNumber(attentionCount)}
+            description={`${formatNumber(data.ai.reviewRequiredClassifications)} manual review · ${formatNumber(data.ai.failedClassifications)} failed`}
+          />
+          <AiMetric
+            label="Average sentiment score"
+            value={formatScore(data.ai.averageSentimentScore)}
+            description="Mean stored Gemini sentiment score across classified feedback in the active filters."
+          />
+          <AiMetric
+            label="Theme coverage"
+            value={formatPercentage(data.ai.themeCoverage)}
+            description={`${formatNumber(data.ai.themeAssignedItems)} of ${formatNumber(data.stats.totalItems)} items have at least one stored theme assignment.`}
+          />
+        </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -176,7 +237,7 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
             <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Sentiment</p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Sentiment breakdown</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Uses stored classification results only; unclassified feedback is excluded.
+              Uses stored Gemini classification results only; unclassified feedback is excluded.
             </p>
           </div>
 
@@ -229,7 +290,7 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
             <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Themes</p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Top themes</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Counts tenant-scoped theme assignments on feedback matching the active filters.
+              Counts stored Gemini theme assignments on feedback matching the active filters.
             </p>
           </div>
 

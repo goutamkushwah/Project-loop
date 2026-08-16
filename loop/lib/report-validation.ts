@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { REPORT_SHARE_TOKEN_PATTERN } from "@/lib/report-sharing";
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_REPORT_RANGE_DAYS = 366;
 const MAX_REPORT_PAGE_SIZE = 50;
@@ -133,6 +135,10 @@ export const reportListQuerySchema = z
   });
 
 export const reportIdSchema = z.string().uuid("Report ID must be a valid UUID.");
+
+export const reportShareTokenSchema = z
+  .string()
+  .regex(REPORT_SHARE_TOKEN_PATTERN, "Shared report token is invalid.");
 
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 export type ReportListQuery = z.infer<typeof reportListQuerySchema>;

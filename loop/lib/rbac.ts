@@ -12,6 +12,7 @@ export const PERMISSIONS = {
   MEMBERS_MANAGE: "members.manage",
   REPORTS_READ: "reports.read",
   REPORTS_CREATE: "reports.create",
+  REPORTS_SHARE: "reports.share",
   SETTINGS_READ: "settings.read",
 } as const;
 
@@ -30,6 +31,7 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.MEMBERS_MANAGE,
     PERMISSIONS.REPORTS_READ,
     PERMISSIONS.REPORTS_CREATE,
+    PERMISSIONS.REPORTS_SHARE,
     PERMISSIONS.SETTINGS_READ,
   ]),
   ANALYST: new Set<Permission>([
@@ -42,6 +44,7 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.ASK_LOOP_QUERY,
     PERMISSIONS.REPORTS_READ,
     PERMISSIONS.REPORTS_CREATE,
+    PERMISSIONS.REPORTS_SHARE,
   ]),
   VIEWER: new Set<Permission>([
     PERMISSIONS.DASHBOARD_READ,

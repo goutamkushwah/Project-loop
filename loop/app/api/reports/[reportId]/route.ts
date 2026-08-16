@@ -7,14 +7,11 @@ import { getWorkspaceReport, ReportServiceError } from "@/services/report-servic
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ reportId: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ reportId: string }> }) {
+  const { reportId } = await context.params;
+
   const authorization = await authorizeApi(PERMISSIONS.REPORTS_READ);
   if (!authorization.ok) return authorization.response;
-
-  const { reportId } = await context.params;
 
   const parsedId = reportIdSchema.safeParse(reportId);
   if (!parsedId.success) {
@@ -23,15 +20,23 @@ export async function GET(
 
   try {
     const report = await getWorkspaceReport(authorization.user.workspaceId, parsedId.data);
+
     if (!report) {
-      return apiError("REPORT_NOT_FOUND", "The requested report was not found in this workspace.", 404);
+      return apiError(
+        "REPORT_NOT_FOUND",
+        "The requested report was not found in this workspace.",
+        404,
+      );
     }
+
     return apiSuccess({ report });
   } catch (error: unknown) {
     if (error instanceof ReportServiceError) {
       return apiError(error.code, error.message, error.status);
     }
+
     console.error("Saved report detail failed.", error);
+
     return apiError("REPORT_LIST_FAILED", "The saved report could not be loaded.", 500);
   }
 }

@@ -120,7 +120,29 @@ export type VoiceOfCustomerReportContent = {
   narrative: ReportNarrative;
 };
 
+export type ReportSharingState = {
+  enabled: boolean;
+  createdAt: string | null;
+};
+
 export type VoiceOfCustomerReportDetail = ReportListItem & {
   updatedAt: string;
+  sharing: ReportSharingState;
   content: VoiceOfCustomerReportContent;
+};
+
+export type SharedVoiceOfCustomerReportDetail = {
+  id: string;
+  title: string;
+  periodStart: string;
+  periodEnd: string;
+  createdAt: string;
+  updatedAt: string;
+  content: VoiceOfCustomerReportContent;
+};
+
+export type ReportShareCreated = {
+  reportId: string;
+  shareUrl: string;
+  createdAt: string;
 };
