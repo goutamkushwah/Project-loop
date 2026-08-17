@@ -456,7 +456,7 @@ export function FeedbackWorkspace({
             <h2 className="mt-2 text-2xl font-black text-loop-900">Search, filter, and triage</h2>
           </div>
           <span className="w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 ring-1 ring-inset ring-emerald-200">
-            Gemini classification active
+             classification active
           </span>
         </div>
 

@@ -204,10 +204,7 @@ export function FeedbackEntryForm({ onCreated }: FeedbackEntryFormProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-900">
-        New items are classified with <strong>Gemini</strong> immediately after the database insert.
-        Invalid structured output is retried once and then marked for manual review.
-      </div>
+      
 
       <button
         type="submit"

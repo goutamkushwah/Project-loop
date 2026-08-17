@@ -302,7 +302,7 @@ export function FeedbackCsvUpload({ onImported }: FeedbackCsvUploadProps) {
           </div>
 
           <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-            <p className="text-sm font-bold text-violet-900">Gemini classification</p>
+            <p className="text-sm font-bold text-violet-900"> classification</p>
             <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl bg-white p-3 text-center ring-1 ring-inset ring-violet-100">
                 <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Classified</dt>
