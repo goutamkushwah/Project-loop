@@ -56,6 +56,9 @@ Instead of treating AI as a standalone chatbot, LOOP connects it directly to rea
 ![Ask LOOP](loop/docs/screenshots/06-ask-loop.png)
 
 ![VOC Report](loop/docs/screenshots/07-voc-report.png)
+![Voice-of-Customer Report 1](loop/docs/screenshots/report-1.png)
+
+![Voice-of-Customer Report 2](loop/docs/screenshots/report-2.png)
 
 ### Workspace Administration
 
