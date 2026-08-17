@@ -133,11 +133,9 @@ export function TrendsView({ data }: TrendsViewProps) {
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Theme volume</p>
+
             <h2 className="mt-2 text-2xl font-black text-loop-900">Theme activity over time</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Daily assignment volume for the six most active themes in the current period. Counts are derived from stored FeedbackTheme relationships.
-            </p>
+            
           </div>
           <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
             {data.currentPeriod.dayCount} days
@@ -192,9 +190,7 @@ export function TrendsView({ data }: TrendsViewProps) {
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
             <h3 className="text-lg font-black text-slate-900">No theme activity in this period</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
-              Change the date or feedback filters, or classify feedback so stored theme assignments exist.
-            </p>
+           
           </div>
         )}
       </section>
@@ -202,11 +198,9 @@ export function TrendsView({ data }: TrendsViewProps) {
       <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Period comparison</p>
+           
             <h2 className="mt-2 text-2xl font-black text-loop-900">Current vs previous period</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              The previous window is immediately before the selected current window and uses the same number of days and filters.
-            </p>
+            
           </div>
 
           {comparisonChartData.length > 0 ? (
@@ -232,11 +226,9 @@ export function TrendsView({ data }: TrendsViewProps) {
 
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-amber-700">Spike detection</p>
+            
             <h2 className="mt-2 text-2xl font-black text-loop-900">Themes needing attention</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              LOOP flags a spike when a theme has at least 3 current assignments and is either new to the period or grows by at least 2 assignments and 50% versus the previous equal window.
-            </p>
+           
           </div>
 
           {spikingThemes.length > 0 ? (
@@ -279,7 +271,7 @@ export function TrendsView({ data }: TrendsViewProps) {
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Theme movement</p>
+            
             <h2 className="mt-2 text-2xl font-black text-loop-900">All active comparison themes</h2>
           </div>
           <p className="text-sm text-slate-500">Click evidence to inspect the exact feedback behind a trend.</p>
