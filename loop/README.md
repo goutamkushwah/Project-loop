@@ -1,574 +1,591 @@
-# 🚀 Project LOOP – AI Customer Feedback Intelligence Platform
+# LOOP — AI Customer-Feedback Intelligence Platform
 
-**Close the loop on customer feedback.**
+LOOP is a multi-tenant SaaS application for collecting customer feedback, triaging it, analysing sentiment and themes, detecting trend spikes, asking grounded natural-language questions, and generating shareable Voice-of-Customer reports.
 
-Project LOOP is a corporate-grade, AI-powered Customer Feedback Intelligence Platform built as part of the **Zidio Development Internship — Web Development Track**. It helps businesses collect, organize, analyze, and understand customer feedback from multiple sources in one centralized dashboard.
+The application is built as a production-style Next.js 14 project with strict workspace isolation and server-side RBAC. AI features use Google Gemini; model responses are structured, validated, persisted, and grounded in workspace data rather than recomputed on page render.
 
-Instead of manually reading hundreds of customer reviews, support tickets, survey responses, and feedback comments, Project LOOP uses Artificial Intelligence (powered by the Google Gemini API) to automatically classify sentiment, cluster feedback into themes, detect emerging trends, answer plain-English questions grounded in real data, and generate boardroom-ready reports.
+## Core features
 
-The platform is built as a secure **multi-tenant SaaS application**, meaning multiple organizations ("workspaces") can use the same platform independently while their data stays completely isolated from one another — the same architecture pattern used by real products like Enterpret, Dovetail, and Productboard Insights.
+- Multi-tenant workspaces with `ADMIN`, `ANALYST`, and `VIEWER` roles.
+- Credentials authentication with protected routes and server-side authorization.
+- Manual feedback entry, CSV bulk import, and simulated feedback channels.
+- Paginated inbox with full-text search, compound filters, and `NEW → REVIEWED → ACTIONED` workflow.
+- Gemini classification for sentiment, sentiment score, feature area, themes, and rationale.
+- Theme catalog, evidence drill-down, volume trends, and previous-period spike detection.
+- Ask LOOP with Gemini embeddings, PostgreSQL `pgvector` semantic retrieval, grounded answers, and verifiable citations.
+- Voice-of-Customer reports built from pre-computed database statistics and Gemini narrative generation.
+- Secure public report sharing with opaque capability tokens whose raw values are never stored.
+- Recharts dashboard backed by real persisted feedback, classification, sentiment, and theme data.
+- Responsive loading, empty, error, 403, 404, keyboard-navigation, and reduced-motion states.
 
----
+## Tech stack
 
-## 👥 Team
-
-| Name | Email |
+| Layer | Technology |
 |---|---|
-| Goutam Kushwah | goutam.kushwah2003@gmail.com |
-| Sneha Sekar | snehasekar0123@gmail.com |
-| Gaurav Athode | gauravathode123@gmail.com |
-| Mohan Sahu | mohanmppsc@gmail.com |
+| Framework | Next.js 14 App Router |
+| Language | TypeScript |
+| UI | React 18 + Tailwind CSS |
+| Database | PostgreSQL |
+| ORM | Prisma 5 |
+| Authentication | NextAuth.js 4 Credentials provider |
+| Validation | Zod |
+| AI | Google Gemini via `@google/genai` |
+| Embeddings | `gemini-embedding-2`, 768 dimensions |
+| Vector search | PostgreSQL `pgvector` + cosine HNSW index |
+| Charts | Recharts |
+| Deployment | Vercel |
 
----
+## Architecture
 
-## 📌 Table of Contents
+```text
+Browser
+  │
+  ├── Server-rendered Next.js App Router pages
+  │
+  └── /api/* Route Handlers
+          │
+          ├── Authentication + database-backed RBAC
+          ├── Zod input validation
+          ├── Workspace-scoped service layer
+          │      │
+          │      ├── Prisma ─────────────── PostgreSQL
+          │      │                            ├── users/workspaces
+          │      │                            ├── feedback/themes
+          │      │                            ├── reports
+          │      │                            └── pgvector embeddings
+          │      │
+          │      └── Gemini server services
+          │             ├── classification
+          │             ├── embeddings
+          │             ├── grounded Ask LOOP
+          │             └── VoC narrative
+          │
+          └── Typed API responses
 
-1. [Overview](#-overview)
-2. [Problem Statement](#-problem-statement)
-3. [The Opportunity](#-the-opportunity)
-4. [Objectives & Learning Outcomes](#-objectives--learning-outcomes)
-5. [Project Scope](#-project-scope)
-6. [Technology Stack](#-technology-stack)
-7. [System Architecture](#-system-architecture)
-8. [Data Model](#-data-model)
-9. [Core Features](#-core-features)
-10. [AI Features](#-ai-features)
-11. [AI Implementation Approach](#-ai-implementation-approach)
-12. [Project Timeline](#-project-timeline--4-week-sprint-plan)
-13. [Milestones & Deliverables](#-milestones--deliverables)
-14. [Getting Started](#-getting-started)
-15. [Repository Structure](#-suggested-repository-structure)
-16. [Security Notes](#-security--environment-variables)
-17. [Demo Credentials](#-demo-credentials)
-18. [Coding Standards & Git Workflow](#-coding-standards--git-workflow)
-19. [Evaluation Rubric](#-evaluation--scoring-rubric)
-20. [Glossary](#-glossary)
+The browser never supplies an authoritative workspaceId. Protected API routes resolve the authenticated database user and scope feedback, theme, embedding, report, and member operations to that user's workspace.
 
----
+AI data flow
 
-## 📖 Overview
+Feedback ingestion
+    │
+    ├── Gemini structured classification
+    │       └── Zod validation → persisted sentiment/themes
+    │
+    └── Gemini embedding
+            └── vector(768) → pgvector
 
-Modern businesses receive customer feedback from many different channels, including:
+Ask LOOP question
+    └── question embedding
+            └── top-K same-workspace semantic retrieval
+                    └── retrieved evidence only → Gemini
+                            └── validated answer + cited feedback IDs
 
-- 🎫 Support tickets and live-chat transcripts
-- ⭐ App-store and review-site ratings with written comments
-- 📋 NPS and CSAT survey free-text responses
-- 📞 Sales and customer-success call notes
-- 💬 Social media mentions and community posts
+VoC report
+    └── deterministic PostgreSQL statistics
+            └── evidence + numbers → Gemini narrative
+                    └── validated contentJson → saved Report
 
-Individually, each of these is just a sentence or two. Collectively, they hold the answer to the single most valuable question a company can ask: **"What should we build, fix, or improve next?"**
+RBAC
 
-The problem is that no human team has the time to read, tag, and synthesize hundreds — or thousands — of feedback items every week. As a result, this feedback rots away in spreadsheets and inboxes, and important product decisions end up being made on gut feeling rather than actual evidence.
+Capability
 
-**Project LOOP solves this by becoming the single place a team drops all of its feedback — and letting AI do the reading.**
+ADMIN
 
-The platform automatically:
+ANALYST
 
-- 🏷️ Tags every incoming feedback item
-- 🧩 Groups similar items into meaningful themes
-- 📈 Flags what's trending or spiking this week
-- 💬 Lets anyone ask questions in plain English and get answers grounded in the real data
-- 📄 Generates ready-to-share Voice-of-Customer reports
+VIEWER
 
-With LOOP, teams move from *"we think customers want this"* to *"43 customers asked for this in the last 30 days, and complaints about it are up 60% week-over-week."*
+View dashboard/inbox/themes/trends
 
----
+✅
 
-## ❓ Problem Statement
+✅
 
-Companies often receive thousands of feedback messages every month, arriving through many different doors at once. Reading every single message manually is:
+✅
 
-- ⏳ **Time-consuming** — no team has the bandwidth to read everything
-- ❌ **Error-prone** — manual tagging is inconsistent between reviewers
-- 🗂️ **Difficult to organize** — feedback ends up scattered across tools and spreadsheets
-- 📉 **Impossible to scale** — as feedback volume grows, manual review breaks down completely
+Use Ask LOOP
 
-As a result, valuable customer insight is routinely lost, duplicated effort is common, and product roadmaps get shaped by whoever shouts the loudest rather than by what the data actually shows.
+✅
 
-**Project LOOP automates this entire process using AI — from ingestion to insight, without a human having to read every line.**
+✅
 
----
+✅
 
-## 💡 The Opportunity
+Read saved reports
 
-LOOP closes the gap between "feedback exists" and "feedback is acted on." It becomes the single place a team drops all of its raw feedback, while the AI layer handles the reading, tagging, grouping, and summarizing.
+✅
 
-**Business framing:** Think of LOOP as something you're pitching to a Head of Product who has 90 seconds to listen. The headline is:
+✅
 
-> "LOOP turns scattered customer feedback into a ranked, evidence-backed list of what to do next."
+✅
 
-This is the sentence the entire product — and this README — is built around.
+Create/manage feedback
 
----
+✅
 
-## 🎯 Objectives & Learning Outcomes
+✅
 
-### Project Objectives
+❌
 
-1. Design and ship a **multi-tenant web application** where each company's data is fully isolated from every other company's data.
-2. Implement **secure authentication and role-based access control (RBAC)** across at least three roles — Admin, Analyst, and Viewer.
-3. Build a **clean, predictable REST / Route-Handler API** consumed by the frontend, with no business logic leaking into UI components.
-4. Integrate the **Gemini AI API** to deliver at least three meaningful AI features that genuinely require AI — not cosmetic add-ons.
-5. **Deploy** a production build to a public URL and document it so a stranger could run it locally.
+Classify/re-classify feedback
 
-### Learning Outcomes
+✅
 
-| Skill Area | What It Proves |
-|---|---|
-| Data Modelling | Designing a relational schema with tenancy, relationships, and constraints (Prisma + PostgreSQL) |
-| Backend / API | Writing typed, validated, paginated API endpoints with proper error handling and auth guards |
-| Auth & Security | Session handling, RBAC, and preventing cross-tenant data access |
-| AI Engineering | Prompt design for structured output, retrieval-grounded answers, and summarization |
-| Frontend | Dashboards, data tables, filters, charts, loading/empty/error states, responsive layout |
-| DevOps Basics | Environment configuration, database migrations, and deploying to Vercel |
-| Professional Habits | Git hygiene, documentation, and presenting the work as a real product |
+✅
 
----
+❌
 
-## 🧭 Project Scope
+Run theme clustering
 
-### ✅ In Scope (Required)
+✅
 
-- Multi-tenant workspaces with **three roles**: Admin, Analyst, Viewer
-- Feedback ingestion via **manual entry**, **CSV bulk upload**, and at least **one simulated channel source**
-- A **feedback inbox** with search, filtering, pagination, and a status workflow
-- An **analytics dashboard** with at least three charts driven by real data
-- **Four AI features**: auto-classification, theme clustering & trends, Ask LOOP Q&A, and the Voice-of-Customer report
-- A **public deployment**, a **README**, and a **demo video**
+✅
 
-### 🚫 Out of Scope (Not to Be Built)
+❌
 
-These are explicitly excluded — building them instead of the required scope lowers the score, not raises it:
+Generate VoC reports
 
-- Real third-party integrations (live Zendesk / App Store / Twitter pulls) — simulated with seed data instead
-- Billing, payments, or subscription tiers
-- Native mobile apps
-- Real-time collaboration (websockets / live cursors)
-- Email/SMS delivery infrastructure
+✅
 
-> **If you finish early:** Polish and harden the required scope first — tests, error states, accessibility, performance, and a genuinely impressive demo. Only after the required scope is excellent should a stretch feature be considered. A flawless core beats a half-working pile of extras.
+✅
 
----
+❌
 
-## 🛠 Technology Stack
+Share/revoke report links
 
-| Layer | Technology | Why |
-|---|---|---|
-| Framework | **Next.js 14 (App Router) + TypeScript** | Full-stack in one codebase; matches production standards |
-| Styling | **Tailwind CSS** | Fast, consistent, industry-standard utility CSS |
-| Database | **PostgreSQL** (Neon or Supabase free tier) | Relational integrity for multi-tenant data |
-| ORM | **Prisma** | Type-safe schema, migrations, and queries |
-| Auth | **NextAuth (Auth.js)** | Sessions, providers, and role handling |
-| AI | **Gemini Gemini API** | Classification, summarization, and Q&A |
-| Embeddings / Search | **pgvector** or a hosted embeddings provider | Powers "Ask LOOP" semantic retrieval |
-| Charts | **Recharts** | Dashboard visualizations |
-| Validation | **Zod** | Runtime validation on every API boundary |
-| Deployment | **Vercel + hosted Postgres** | One-command production deploys |
+✅
 
-> **Approved alternative stack (Java Full-Stack track):** Spring Boot 3 + Java 17 + Spring Security + JPA/Hibernate + PostgreSQL for the backend, with a React (Vite) frontend, deployed via Render/Railway + Vercel. Every requirement and milestone applies identically — only the implementation technology changes.
+✅
 
----
+❌
 
-## 🏗 System Architecture
+Manage workspace members/roles
 
-LOOP follows a standard **three-tier architecture**. The browser only ever talks to LOOP's own API layer — the API layer is the sole component that talks to the database and to the Gemini API.
+✅
 
-### Request Flow
+❌
 
-1. The **browser** (React Server/Client Components) renders the UI and calls the app's own API route handlers.
-2. **Route handlers** authenticate the session, check the user's role, and scope every query to the caller's workspace.
-3. **Prisma** reads/writes PostgreSQL. All feedback rows carry a `workspaceId`; every query filters on it.
-4. For **AI features**, the route handler builds a prompt, calls the Gemini API server-side, parses the response, and returns clean JSON to the browser.
-5. For **Ask LOOP**, the handler first retrieves the most relevant feedback via vector search, then passes it to Gemini as grounding context before answering.
+❌
 
-> ⚠️ **Non-negotiable security rule:** Every single database query that touches feedback, themes, reports, or users **MUST** be filtered by the authenticated user's `workspaceId`. A user from Company A must never be able to read a row belonging to Company B — even by guessing an ID in the URL.
+API authorization is always enforced on the server. UI visibility is only a convenience layer.
 
----
+Prerequisites
 
-## 🗄 Data Model
+Node.js 20 or newer.
 
-Every tenant-owned table carries a `workspaceId` foreign key to enforce isolation.
+npm.
 
-| Entity | Key Fields & Relationships |
-|---|---|
-| **Workspace** | `id`, `name`, `createdAt` — has many Users, Feedback, Themes, Reports |
-| **User** | `id`, `name`, `email`, `passwordHash`, `role` (ADMIN \| ANALYST \| VIEWER), `workspaceId` |
-| **Feedback** | `id`, `content`, `channel`, `sourceRef`, `customerLabel`, `sentiment` (POS \| NEU \| NEG), `sentimentScore` (-1..1), `status` (NEW \| REVIEWED \| ACTIONED), `createdAt`, `workspaceId` |
-| **Theme** | `id`, `name`, `description`, `color`, `workspaceId` — has many FeedbackTheme |
-| **FeedbackTheme** | Join table — `feedbackId`, `themeId`, `confidence` (0..1) |
-| **Embedding** | `id`, `feedbackId`, `vector` — powers Ask LOOP semantic search |
-| **Report** | `id`, `title`, `periodStart`, `periodEnd`, `contentJson`, `createdAt`, `workspaceId`, `generatedBy` |
+Git.
 
-### Seed Data
+PostgreSQL with the vector extension available. Neon or Supabase are suitable hosted choices.
 
-A seed script is required that creates:
+A Google Gemini API key.
 
-- One demo workspace
-- Three users (one per role: Admin, Analyst, Viewer)
-- At least **120 realistic feedback items** across several channels
-- A handful of pre-defined themes
+A Vercel account for production deployment.
 
-A demo with just a few rows of data looks unfinished — graders (and you) need real data to see the product actually work.
+Local setup
 
----
+1. Clone and install
 
-## 🧩 Core Features
+git clone <YOUR_REPOSITORY_URL>
+cd loop
+npm install
 
-### C1 — Authentication & Workspaces
-As a new user, I can create an account and a workspace, then log in securely so my company's data stays private.
+2. Configure environment variables
 
-- Sign-up creates a User and a Workspace; the creator becomes ADMIN
-- Passwords are hashed; sessions persist across refresh
-- Logged-out users are redirected away from protected pages
-- All visible data is scoped to the user's workspace only
+Copy .env.example to .env and replace the example values:
 
-### C2 — Role-Based Access Control
-As an admin, I can invite teammates and assign roles so people only do what their role permits.
+cp .env.example .env
 
-- Three roles: **ADMIN**, **ANALYST**, **VIEWER**
-- Admins manage members and roles; Analysts ingest and manage feedback; Viewers are read-only
-- Roles are enforced **server-side** — hiding a UI button is not enough
-- Forbidden actions return a proper `403`, never a crash
+On Windows PowerShell:
 
-### C3 — Feedback Ingestion
-As an analyst, I can add feedback one item at a time, upload a CSV in bulk, or pull from a simulated channel.
+Copy-Item .env.example .env
 
-- Single-entry form with validation (content required, channel selected)
-- CSV upload parses rows and reports import success/failure counts
-- At least one "channel" button seeds realistic items to simulate an integration
-- Newly ingested items are automatically queued for AI classification
+Required variables:
 
-### C4 — Feedback Inbox
-As an analyst, I can search, filter, and triage feedback so I can find and action what matters.
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="a-random-secret-with-at-least-32-characters"
+GEMINI_API_KEY="your-google-gemini-api-key"
 
-- Server-side pagination (never loading thousands of rows at once)
-- Filter by channel, sentiment, theme, status, and date range
-- Full-text search over feedback content
-- Status workflow: **NEW → REVIEWED → ACTIONED**, changeable inline
+SEED_ADMIN_PASSWORD="LoopAdmin!2026"
+SEED_ANALYST_PASSWORD="LoopAnalyst!2026"
+SEED_VIEWER_PASSWORD="LoopViewer!2026"
 
-### C5 — Analytics Dashboard
-As a product manager, I can see the shape of our feedback at a glance so I know where to focus.
+Generate a NextAuth secret with a secure local command such as:
 
-- At least three charts: volume over time, sentiment breakdown, top themes
-- Charts reflect the active filters / date range
-- Key stat cards: total items, % negative, new this week
-- Graceful empty and loading states
+openssl rand -base64 32
 
----
+Never commit .env, production credentials, database connection strings, or Gemini API keys.
 
-## 🤖 AI Features
+3. Prepare PostgreSQL
 
-These four features are the heart of LOOP and carry the heaviest weight in grading. Each must work end-to-end against real seeded data during the demo.
+Validate the schema, generate Prisma Client, and apply committed migrations:
 
-### AI1 — Auto-Classification
-Every piece of feedback is automatically tagged so no one has to triage by hand.
+npm run db:validate
+npm run prisma:generate
+npm run db:migrate:deploy
 
-- On ingestion, each item is sent to Gemini and returned with: sentiment, sentiment score, theme(s), and a short feature-area label
-- Output is strictly structured **JSON**, validated before saving
-- Classification is stored on the record — never recomputed on every page load
-- A manual **"re-classify"** action exists for corrections
+The migrations enable PostgreSQL extensions and constraints required by LOOP, including pgcrypto and vector, and prepare the 768-dimensional semantic-search index.
 
-### AI2 — Theme Clustering & Trends
-Product managers can see which themes are growing so they can react to emerging issues early.
+4. Load the final demo dataset
 
-- Similar feedback is grouped into named themes with counts
-- A trends view shows theme volume over time and flags themes spiking vs. the previous period
-- Clicking a theme drills into the underlying feedback items
-- New feedback is assigned to existing themes where it fits, or forms a new one
+For the full demo-ready dataset:
 
-### AI3 — Ask LOOP (Grounded Q&A)
-Anyone on the team can ask plain-English questions and get answers backed by real feedback.
+npm run db:seed:final
 
-- A chat-style box accepts questions like *"What are users saying about onboarding?"*
-- The system retrieves the most relevant feedback (semantic search) before answering
-- Answers cite or list the specific feedback items they're based on
-- The model must **never invent feedback** that isn't in the data — grounding is mandatory
+That command performs:
 
-### AI4 — Voice-of-Customer (VoC) Report
-Product managers can generate a weekly digest they could forward to leadership without editing.
+base seed
+  → Gemini classification backfill
+  → Gemini embedding backfill
+  → strict final-seed verification
 
-- One click generates a report for a chosen period
-- The report summarizes top themes, sentiment shifts, notable verbatim quotes, and recommended actions
-- Reports are saved, viewable later, and exportable (PDF or shareable page)
-- Content is generated from the period's actual data — never generic filler
+The final verifier requires:
 
----
+exactly one seeded demo workspace;
 
-## 🧠 AI Implementation Approach
+one active user for each role;
 
-### Structured Classification (AI1)
-Gemini is asked to return **JSON only**, with a fixed schema, validated with Zod before saving:
+120 feedback items;
 
-- Feedback text plus the existing list of theme names is sent so the model reuses themes instead of inventing new ones each time
-- The model returns: `sentiment`, `sentimentScore` (-1 to 1), `themes[]`, `featureArea`, and a one-line rationale
-- Any stray markdown fences are stripped, the response is parsed and validated, with a graceful fallback (retry once, then flag for manual review) if parsing fails
+all feedback classifications completed;
 
-### Retrieval-Grounded Q&A (AI3)
-Ask LOOP answers strictly from the data using a **retrieve-then-answer** pattern:
+100% embedding coverage;
 
-1. Every feedback item is embedded on ingestion; the vector is stored (pgvector or a vectors table)
-2. On a question, the question itself is embedded and the top-K most similar feedback items are retrieved
-3. Those items are passed to Gemini as context, with an explicit instruction: *answer only from the provided feedback; if the answer isn't present, say so*
-4. The answer is returned along with the list of feedback items used, so the response can be verified
+100% theme-assignment coverage.
 
-### Report Generation (AI4)
-The period's stats (top themes, counts, sentiment deltas, a few representative quotes) are **pre-computed in code**, and Gemini is asked to write the narrative around those numbers. This keeps the report accurate and cost-efficient, and prevents the model from hallucinating figures.
+If you only need the raw database records without running Gemini calls:
 
-> **Cost, safety, and keys:** The Gemini API key stays server-side only — never shipped to the browser or committed to Git. Classification runs on ingest and results are cached; the model is never called on every page render.
+npm run db:seed
 
----
+5. Run the application
 
-## 📅 Project Timeline — 4-Week Sprint Plan
+npm run dev
 
-The project runs across **four weeks (twenty working days)**. Each week is a sprint ending in a demoable deliverable and a mentor checkpoint.
+Open:
 
-### Week 1 — Foundation & Data Layer
-*Deliverable: A deployed app where you can sign up, log in, and add & view feedback.*
+http://localhost:3000
 
-| Day | Focus |
-|---|---|
-| 1 | Repo, Next.js + TypeScript + Tailwind setup, environment config, connect PostgreSQL, push "hello world" to Vercel |
-| 2 | Design the Prisma schema, run first migration, write seed script skeleton |
-| 3 | Authentication with NextAuth: sign-up, login, logout, protected routes, session handling |
-| 4 | Workspaces + RBAC roles; ensure every query is scoped by `workspaceId`; member list for admins |
-| 5 | Single-entry feedback create + list (no AI yet); deploy; mentor checkpoint |
+Demo credentials
 
-### Week 2 — Core Application
-*Deliverable: A working feedback-management app — bulk import, inbox with filters, dashboard shell.*
+The seeded demo workspace is Acme Cloud.
 
-| Day | Focus |
-|---|---|
-| 6 | CSV bulk upload: parse, validate, import with success/failure summary |
-| 7 | Simulated channel source(s) that seed realistic feedback |
-| 8 | Feedback inbox: server-side pagination, search, status workflow |
-| 9 | Inbox filters (channel, sentiment, theme, status, date range) wired to the API |
-| 10 | Dashboard shell with Recharts: volume, sentiment, top-themes charts; deploy; checkpoint |
+Role
 
-### Week 3 — AI Integration
-*Deliverable: Auto-classification, theme trends, and Ask LOOP all working against real data.*
+Email
 
-| Day | Focus |
-|---|---|
-| 11 | AI service wiring: server-side Gemini call, structured-JSON classification, Zod validation |
-| 12 | Classify on ingest + store results; back-fill classification across seeded data; manual re-classify |
-| 13 | Theme clustering: assign feedback to themes; theme list with counts and drill-down |
-| 14 | Trends view: theme volume over time + spike detection vs. previous period |
-| 15 | Ask LOOP: embeddings on ingest, semantic retrieval, grounded answers with cited items; deploy; checkpoint |
+Default demo password
 
-### Week 4 — Intelligence & Production Polish
-*Deliverable: A production-ready submission — VoC report, polished UX, README, and demo video.*
+Admin
 
-| Day | Focus |
-|---|---|
-| 16 | Voice-of-Customer report: pre-compute stats, generate narrative, save + view |
-| 17 | Report export (PDF or shareable page); connect real AI-driven numbers into the dashboard |
-| 18 | Hardening: error handling, loading/empty states, 403/404 pages, responsive pass, accessibility basics |
-| 19 | Write the README (setup, architecture, screenshots); final seed data; final deploy + smoke test |
-| 20 | Record the 3–5 minute demo video; final QA against the rubric; submit before the deadline |
+admin@loop.demo
 
-> **Buffer & realism:** If a day is lost, protect the AI features (Week 3) and the deployment — those carry the most marks. Trim polish before trimming core functionality.
+LoopAdmin!2026
 
----
+Analyst
 
-## 🏁 Milestones & Deliverables
+analyst@loop.demo
 
-| Milestone | End of | Deliverable | Points |
-|---|---|---|---|
-| **M1 — Foundation** | Week 1 | Live URL with auth, RBAC, workspaces, and basic feedback CRUD | 10 |
-| **M2 — Core App** | Week 2 | Bulk import, inbox with filters & status, dashboard shell | 15 |
-| **M3 — AI Features** | Week 3 | Classification, theme trends, and Ask LOOP working end-to-end | 15 |
-| **M4 — Production** | Week 4 | VoC report, polished UX, README, demo video, final deploy | 10 |
+LoopAnalyst!2026
 
-### Optional Stretch Goals
-Only attempt once the required scope is excellent:
+Viewer
 
-- Saved views / segments in the inbox (e.g., "all negative onboarding feedback")
-- A "suggested actions" queue turning recurring themes into draft tasks
-- Sentiment trend alerts (banner when negativity spikes)
-- Basic test coverage on the API layer (Vitest / Jest)
+viewer@loop.demo
 
----
+LoopViewer!2026
 
-## ⚡ Getting Started
+These credentials are intentionally for the disposable seeded demo workspace only. They can be overridden with the three SEED_*_PASSWORD environment variables and should never be reused for a real account.
 
-### Prerequisites
+Main routes
 
-- Node.js 18 LTS or newer, and Git
-- A free PostgreSQL database (Neon or Supabase)
-- An Google Gemini API key
-- A Vercel account connected to GitHub
+Route
 
-### First-Run Steps
+Purpose
 
-```bash
-# 1. Create the app and install dependencies
-npx create-next-app@latest loop --typescript --tailwind --app
-cd loop && npm install prisma @prisma/client next-auth zod recharts
-npm install @google/genai
+/dashboard
 
-# 2. Configure environment variables (never commit this file)
-# .env -> DATABASE_URL, NEXTAUTH_SECRET, GEMINI_API_KEY
+Feedback volume, sentiment, themes, and persisted AI metrics
 
-# 3. Set up the database
-npx prisma migrate dev --name init
-npm run seed
+/inbox
 
-# 4. Run locally, then deploy
-npm run dev      # http://localhost:3000
-vercel            # production deploy
-```
+Search, filters, ingestion, classification, and triage
 
----
+/themes
 
-## 📁 Suggested Repository Structure
+Theme catalog, counts, clustering, and evidence drill-down
 
-```
+/trends
+
+Theme volume and previous-period spike detection
+
+/ask
+
+Grounded semantic Q&A over workspace feedback
+
+/reports
+
+Generate and browse Voice-of-Customer reports
+
+/reports/:id
+
+Saved report detail and sharing controls
+
+/settings/members
+
+Admin-only member and role management
+
+/shared/reports/:token
+
+Public read-only capability-token report page
+
+/api/health
+
+Database-backed production health check
+
+Feedback ingestion
+
+LOOP supports three required ingestion paths:
+
+Manual single-entry feedback.
+
+CSV import with row-level validation and imported/failed counts.
+
+Simulated channel pulls that generate realistic feedback without requiring third-party integrations.
+
+A CSV template is available at:
+
+/public/templates/feedback-import-template.csv
+
+Suggested columns:
+
+content,channel,customer_label,created_at
+
+Sentiment and themes are produced by the server-side Gemini classification pipeline rather than trusted from imported CSV data.
+
+Quality checks
+
+Run before opening a pull request or deploying:
+
+npm run db:validate
+npm run prisma:generate
+npm run typecheck
+npm run lint
+npm run format:check
+npm run build
+
+AI connectivity can be verified separately:
+
+npm run ai:verify
+
+Final seed verification
+
+After seeding or before production submission:
+
+npm run db:verify:seed
+
+A passing run confirms the demo workspace contains the complete classified and embedded dataset expected by the submission.
+
+Production deployment
+
+1. Configure Vercel environment variables
+
+Set these for the Production environment:
+
+DATABASE_URL
+NEXTAUTH_URL
+NEXTAUTH_SECRET
+GEMINI_API_KEY
+SEED_ADMIN_PASSWORD
+SEED_ANALYST_PASSWORD
+SEED_VIEWER_PASSWORD
+
+NEXTAUTH_URL must equal the final production origin, for example:
+
+https://your-loop-project.vercel.app
+
+2. Apply migrations to the production database
+
+Run with the production DATABASE_URL loaded in your shell:
+
+npm run db:migrate:deploy
+
+3. Load and verify the production demo data
+
+npm run db:seed:final
+
+This intentionally resets only the seeded workspace whose slug is acme-cloud; do not point the seed command at a database where that slug contains data you need to preserve.
+
+4. Deploy
+
+npx vercel --prod
+
+5. Run the production smoke test
+
+npm run smoke -- --base-url=https://your-loop-project.vercel.app
+
+The smoke test verifies:
+
+public landing and login pages;
+
+/api/health and database connectivity;
+
+successful login for Admin, Analyst, and Viewer demo users;
+
+dashboard access for every role;
+
+feedback, dashboard analytics, themes, trends, and reports read APIs;
+
+member-list access for Admin;
+
+member-list HTTP 403 enforcement for Analyst and Viewer.
+
+A non-zero exit code means the deployment should not be submitted yet.
+
+Screenshots
+
+The project brief requires real screenshots from the submitted application. They must be captured from the final seeded production deployment rather than fabricated from mock data.
+
+The exact capture manifest and safe-capture rules are documented in docs/screenshots/README.md.
+
+For the submission repository, capture and commit:
+
+docs/screenshots/01-login.png
+docs/screenshots/02-dashboard.png
+docs/screenshots/03-inbox.png
+docs/screenshots/04-themes.png
+docs/screenshots/05-trends.png
+docs/screenshots/06-ask-loop.png
+docs/screenshots/07-voc-report.png
+docs/screenshots/08-admin-members.png
+
+After capturing them, embed the real images in this section using repository-relative Markdown paths. Do not substitute mockups or generated screenshots for the deployed product.
+
+Security notes
+
+Database operations involving tenant-owned data are scoped by authenticated workspaceId.
+
+Role checks execute server-side and forbidden API operations return HTTP 403.
+
+Passwords are stored as scrypt hashes rather than plaintext.
+
+Gemini calls and API keys are server-only.
+
+All mutable API inputs are validated with Zod.
+
+Cross-site mutations are rejected by same-origin request checks.
+
+Report share links use cryptographically random capability tokens; only SHA-256 hashes are stored.
+
+Unknown or cross-workspace resource IDs resolve without disclosing another tenant's data.
+
+.env*, build artifacts, local databases, and node_modules are excluded from Git.
+
+Repository structure
+
 loop/
-  app/
-    (auth)/login, signup
-    (app)/dashboard, inbox, trends, ask, reports, settings
-    api/
-      auth/...        # NextAuth
-      feedback/       # CRUD + ingestion
-      themes/         # clustering + trends
-      insights/       # Ask LOOP Q&A
-      reports/        # VoC generation
-  components/          # UI building blocks (charts, tables, forms)
-  lib/
-    ai.ts              # Gemini calls: classify, answer, report
-    search.ts          # embeddings + retrieval
-    auth.ts            # session + role guards
-    db.ts               # Prisma client
-  prisma/
-    schema.prisma
-    seed.ts
-  README.md
-  .env.example          # documented, no real secrets
-```
+├── app/
+│   ├── (auth)/                  # Login, signup, invitations
+│   ├── (app)/                   # Protected product pages
+│   ├── api/                     # Next.js Route Handlers
+│   └── shared/reports/          # Public capability-token reports
+├── components/                  # Forms, charts, tables, product UI
+├── docs/screenshots/            # Submission screenshot manifest/images
+├── lib/                         # Auth, validation, Gemini, prompts, utilities
+├── prisma/
+│   ├── migrations/              # PostgreSQL schema history
+│   ├── schema.prisma
+│   ├── seed-data.ts
+│   └── seed.ts
+├── public/templates/            # CSV import template
+├── scripts/                     # AI backfills, seed verification, smoke test
+├── services/                    # Workspace-scoped business logic
+└── types/                       # Shared TypeScript contracts
 
----
+Useful commands
 
-## 🔐 Security & Environment Variables
+Command
 
-Keep the following in `.env` locally and in Vercel's project settings for production:
+Purpose
 
-- `GEMINI_API_KEY`
-- `DATABASE_URL`
-- `NEXTAUTH_SECRET`
+npm run dev
 
-`.env` is added to `.gitignore` from the very first commit. A leaked API key is treated as a security incident.
+Start local Next.js development server
 
----
+npm run build
 
-## 🔑 Demo Credentials
+Generate Prisma Client and create production build
 
-The README for the deployed submission lists one set of login credentials per role (Admin / Analyst / Viewer) on the seeded demo workspace, so anyone can verify RBAC without creating a new account. Demo passwords are never reused real-world passwords.
+npm run typecheck
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | *(fill in)* | *(fill in)* |
-| Analyst | *(fill in)* | *(fill in)* |
-| Viewer | *(fill in)* | *(fill in)* |
+TypeScript validation
 
----
+npm run lint
 
-## 🧑‍💻 Coding Standards & Git Workflow
+ESLint
 
-### Code Quality
+npm run format:check
 
-- TypeScript everywhere; `any` is avoided — types document the data
-- Every API input is validated with Zod; client data is never trusted
-- Business logic stays out of components — it lives in API routes / service files
-- Errors are handled explicitly: friendly messages for users, detailed logs internally
-- Consistent formatting (Prettier) and linting (ESLint)
+Prettier verification
 
-### Git Workflow
+npm run db:migrate:deploy
 
-- Commit early and often with meaningful messages (e.g., `feat: add CSV ingestion with row validation`)
-- A branch per feature, merged into `main` via pull request — even solo
-- Secrets, `.env` files, and `node_modules` are never committed
-- The commit history tells the story of the four weeks — not one giant "final" commit at the end
+Apply committed database migrations
 
----
+npm run db:seed
 
-## 📊 Evaluation & Scoring Rubric
+Load raw 120-item demo dataset
 
-The project is scored within a standard 100-point internship rubric.
+npm run db:seed:final
 
-| Component | Marks | Assessed By |
-|---|---|---|
-| Attendance | 20 | Program-level; daily presence and checkpoint participation |
-| Test / Assessment | 10 | Program-level; track assessment |
-| **Project** | **50** | Milestones M1–M4 |
-| **Submission** | **20** | Deliverable quality |
+Seed, classify, embed, and verify final demo data
 
-### Project Breakdown (50 marks)
+npm run db:verify:seed
 
-| Milestone | Marks | Full-Marks Bar |
-|---|---|---|
-| M1 Foundation | 10 | Secure auth, three working roles, true workspace isolation, live deployment that actually loads |
-| M2 Core App | 15 | Bulk + single ingestion, fast paginated inbox with all filters, working status workflow, real dashboard |
-| M3 AI Features | 15 | Classification, theme trends, and Ask LOOP working on real data, with grounded (non-hallucinated) answers |
-| M4 Production | 10 | VoC report, polished states, responsive UI, clean README + demo |
+Verify final demo-data completeness
 
-### Submission Breakdown (20 marks)
+npm run ai:verify
 
-| Criterion | Marks | Full-Marks Bar |
-|---|---|---|
-| Live deployment | 5 | A public URL that works, with seed data, that a grader can log into and explore |
-| README & docs | 5 | Clear setup steps, architecture overview, and screenshots |
-| Code quality & Git | 5 | Readable, typed, organized code; meaningful commits; no secrets committed |
-| Demo video | 5 | A 3–5 minute walkthrough that tells the product story and shows every feature working |
+Verify Gemini structured classification connectivity
 
-### Quality Bar
+npm run ai:backfill
 
-- **Average submission:** Features technically present but rough — broken edge cases, ugly empty states, AI that sometimes invents data.
-- **Top submission:** Feels like a real product — fast, isolated per tenant, AI answers grounded and useful, and the demo could be shown to a real customer.
+Backfill feedback classification
 
----
+npm run ai:backfill-embeddings
 
-## 📝 Submission Requirements
+Backfill semantic embeddings
 
-1. GitHub repository link (public, or private with mentor access)
-2. Live deployment URL (Vercel) with working seed data and login credentials for each role
-3. A `README.md` covering: what the project is, tech stack, local setup, environment variables, database/seed commands, architecture summary, and screenshots
-4. A 3–5 minute demo video (unlisted YouTube / Google Drive link) walking through every feature
-5. The completed submission form with all links pasted in
-6. A 1–2 minute self-feedback video on the internship experience
+npm run smoke -- --base-url=...
 
----
+Verify deployed production application
 
-## 📚 Glossary
+Scope
 
-| Term | Meaning |
-|---|---|
-| **Multi-tenant** | One application serving many isolated customers ("tenants"); each tenant's data is private |
-| **RBAC** | Role-Based Access Control — permissions determined by a user's role |
-| **Tenant Isolation** | Guaranteeing one customer can never read or write another customer's data |
-| **Embedding** | A numeric vector representing text meaning, used for semantic similarity search |
-| **RAG** | Retrieval-Augmented Generation — fetch relevant data first, then let the model answer from it |
-| **Grounding** | Forcing the AI to answer only from provided data, not from memory or invention |
-| **VoC** | Voice of Customer — the synthesized view of what customers are saying |
-| **Seed Data** | Sample records loaded into the database so the app is usable and demoable immediately |
+LOOP intentionally does not implement billing/payments, native mobile applications, real-time WebSocket features, email/SMS delivery, or live third-party feedback integrations. Simulated channel ingestion is used for integration-style demonstrations.
 
----
+Submission checklist
 
-## 🔗 Resources
+Before submitting the project:
 
-| Topic | Link |
-|---|---|
-| Next.js | https://nextjs.org/docs |
-| Prisma | https://www.prisma.io/docs |
-| NextAuth / Auth.js | https://authjs.dev |
-| Google Gemini API | https://docs.gemini.com |
-| Recharts | https://recharts.org |
-| Zod | https://zod.dev |
-| Neon Postgres | https://neon.tech/docs |
-| Vercel Deploys | https://vercel.com/docs |
+Production migrations have been applied.
 
----
+npm run db:seed:final passes against the demo database.
 
-<p align="center">
-<strong>Zidio Development · Project LOOP · Web Development Track</strong><br>
-<em>Build it like a product. Ship it like a professional.</em>
-</p>
+npm run typecheck, npm run lint, npm run format:check, and npm run build pass.
+
+npm run smoke -- --base-url=<production-url> passes.
+
+All three demo credentials work on production.
+
+Real production screenshots have been added to the README.
+
+No .env, API keys, connection strings, or node_modules are committed.
+
+The repository URL and Vercel URL are accessible to the grader.
+
+The Day 20 3–5 minute demo video shows every required feature working.
+
+License / internship note
+
+LOOP is an internship project implementation. Keep the repository and demo credentials aligned with your cohort's submission and mentor-access requirements.

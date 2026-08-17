@@ -6,7 +6,7 @@
   "engines": {
     "node": ">=18.18.0"
   },
-  "scripts": {
+   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -28,7 +28,10 @@
     "ai:backfill": "tsx scripts/backfill-classification.ts",
     "db:seed:classified": "npm run db:seed && npm run ai:backfill",
     "ai:backfill-embeddings": "tsx scripts/backfill-embeddings.ts",
-    "db:seed:ready": "npm run db:seed:classified && npm run ai:backfill-embeddings"
+    "db:seed:ready": "npm run db:seed:classified && npm run ai:backfill-embeddings",
+    "db:verify:seed": "tsx scripts/verify-final-seed.ts",
+    "db:seed:final": "npm run db:seed:ready && npm run db:verify:seed",
+    "smoke": "tsx scripts/smoke-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

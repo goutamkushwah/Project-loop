@@ -68,67 +68,74 @@ async function seed(): Promise<void> {
   );
 
   const result = await prisma.$transaction(
-    async (transaction) => {
-      await transaction.workspace.deleteMany({
-        where: {
-          slug: DEMO_WORKSPACE.slug,
+  async (transaction) => {
+    await transaction.user.deleteMany({
+      where: {
+        email: {
+          in: DEMO_USERS.map((user) => user.email.toLowerCase()),
         },
-      });
+      },
+    });
 
-      const workspace = await transaction.workspace.create({
-        data: DEMO_WORKSPACE,
-      });
+    await transaction.workspace.deleteMany({
+      where: {
+        slug: DEMO_WORKSPACE.slug,
+      },
+    });
 
-      await transaction.user.createMany({
-        data: passwordHashes.map(({ user, passwordHash }) => ({
+    const workspace = await transaction.workspace.create({
+      data: DEMO_WORKSPACE,
+    });
+
+    await transaction.user.createMany({
+      data: passwordHashes.map(({ user, passwordHash }) => ({
+        workspaceId: workspace.id,
+        name: user.name,
+        email: user.email.toLowerCase(),
+        passwordHash,
+        role: user.role,
+        isActive: true,
+      })),
+    });
+
+    await transaction.theme.createMany({
+      data: THEME_SEEDS.map((theme) => ({
+        workspaceId: workspace.id,
+        ...theme,
+      })),
+    });
+
+    const feedbackRows = buildFeedbackRows(workspace.id);
+
+    const feedbackResult = await transaction.feedback.createMany({
+      data: feedbackRows,
+    });
+
+    const [userCount, themeCount] = await Promise.all([
+      transaction.user.count({
+        where: {
           workspaceId: workspace.id,
-          name: user.name,
-          email: user.email.toLowerCase(),
-          passwordHash,
-          role: user.role,
-          isActive: true,
-        })),
-        skipDuplicates: true,
-      });
-
-      await transaction.theme.createMany({
-        data: THEME_SEEDS.map((theme) => ({
+        },
+      }),
+      transaction.theme.count({
+        where: {
           workspaceId: workspace.id,
-          ...theme,
-        })),
-      });
+        },
+      }),
+    ]);
 
-      const feedbackRows = buildFeedbackRows(workspace.id);
-
-      const feedbackResult = await transaction.feedback.createMany({
-        data: feedbackRows,
-      });
-
-      const [userCount, themeCount] = await Promise.all([
-        transaction.user.count({
-          where: {
-            workspaceId: workspace.id,
-          },
-        }),
-        transaction.theme.count({
-          where: {
-            workspaceId: workspace.id,
-          },
-        }),
-      ]);
-
-      return {
-        workspace,
-        userCount,
-        themeCount,
-        feedbackCount: feedbackResult.count,
-      };
-    },
-    {
-      maxWait: 10000,
-      timeout: 20000,
-    },
-  );
+    return {
+      workspace,
+      userCount,
+      themeCount,
+      feedbackCount: feedbackResult.count,
+    };
+  },
+  {
+    maxWait: 10000,
+    timeout: 20000,
+  },
+);
 
   console.info("LOOP demo database seeded successfully.");
   console.info(`Workspace: ${result.workspace.name} (${result.workspace.slug})`);

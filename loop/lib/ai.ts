@@ -241,9 +241,13 @@ export async function classifyFeedback({
     } catch (error: unknown) {
       const providerError = normalizeProviderError(error, attempt);
 
-      if (attempt < MAX_CLASSIFICATION_ATTEMPTS && providerError.retryable) {
-        continue;
-      }
+    if (
+  attempt < MAX_CLASSIFICATION_ATTEMPTS &&
+  providerError.retryable &&
+  providerError.status !== 429
+) {
+  continue;
+}
 
       throw providerError;
     }
@@ -312,9 +316,13 @@ export async function classifyFeedbackBatch({
     } catch (error: unknown) {
       const providerError = normalizeProviderError(error, attempt);
 
-      if (attempt < MAX_CLASSIFICATION_ATTEMPTS && providerError.retryable) {
-        continue;
-      }
+  if (
+  attempt < MAX_CLASSIFICATION_ATTEMPTS &&
+  providerError.retryable &&
+  providerError.status !== 429
+) {
+  continue;
+}
 
       throw providerError;
     }
@@ -328,4 +336,11 @@ export async function classifyFeedbackBatch({
     reason: "INVALID_MODEL_OUTPUT",
     message: lastInvalidOutputMessage,
   };
+}
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(attempt: number): number {
+  return Math.min(30_000, 5_000 * 2 ** (attempt - 1));
 }

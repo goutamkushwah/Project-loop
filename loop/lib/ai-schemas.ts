@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const AI_CLASSIFICATION_BATCH_SIZE = 5;
+export const AI_CLASSIFICATION_BATCH_SIZE = 10;
 
 export const feedbackClassificationThemeSchema = z
   .object({
