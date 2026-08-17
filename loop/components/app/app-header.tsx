@@ -28,6 +28,8 @@ export function AppHeader({ user }: AppHeaderProps) {
   const canManageMembers = hasPermission(user.role, PERMISSIONS.MEMBERS_READ);
 
   const navigationItems: WorkspaceNavigationItem[] = [
+    { href: "/", label: "Home" },
+    { href: "/about", label: "About" },
     { href: "/dashboard", label: "Dashboard" },
     ...(canReadFeedback ? [{ href: "/inbox", label: "Inbox" }] : []),
     ...(canReadThemes ? [{ href: "/themes", label: "Themes" }] : []),
