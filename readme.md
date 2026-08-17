@@ -928,14 +928,14 @@ The full screenshots are shown in [Product Preview](#product-preview).
 
 | View                     | File                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------- |
-| Login                    | [`docs/screenshots/01-login.png`](docs/screenshots/01-login.png)                 |
-| Dashboard                | [`docs/screenshots/02-dashboard.png`](docs/screenshots/02-dashboard.png)         |
-| Inbox                    | [`docs/screenshots/03-inbox.png`](docs/screenshots/03-inbox.png)                 |
-| Themes                   | [`docs/screenshots/04-themes.png`](docs/screenshots/04-themes.png)               |
-| Trends                   | [`docs/screenshots/05-trends.png`](docs/screenshots/05-trends.png)               |
-| Ask LOOP                 | [`docs/screenshots/06-ask-loop.png`](docs/screenshots/06-ask-loop.png)           |
-| Voice-of-Customer Report | [`docs/screenshots/07-voc-report.png`](docs/screenshots/07-voc-report.png)       |
-| Admin Members            | [`docs/screenshots/08-admin-members.png`](docs/screenshots/08-admin-members.png) |
+| Login                    | [`docs/screenshots/01-login.png`](loop/docs/screenshots/01-login.png)                 |
+| Dashboard                | [`docs/screenshots/02-dashboard.png`](loop/docs/screenshots/02-dashboard.png)         |
+| Inbox                    | [`docs/screenshots/03-inbox.png`](loop/docs/screenshots/03-inbox.png)                 |
+| Themes                   | [`docs/screenshots/04-themes.png`](loop/docs/screenshots/04-themes.png)               |
+| Trends                   | [`docs/screenshots/05-trends.png`](loop/docs/screenshots/05-trends.png)               |
+| Ask LOOP                 | [`docs/screenshots/06-ask-loop.png`](loop/docs/screenshots/06-ask-loop.png)           |
+| Voice-of-Customer Report | [`docs/screenshots/07-voc-report.png`](loop/docs/screenshots/07-voc-report.png)       |
+| Admin Members            | [`docs/screenshots/08-admin-members.png`](loop/docs/screenshots/08-admin-members.png) |
 
 ---
 
