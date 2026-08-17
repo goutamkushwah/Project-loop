@@ -128,14 +128,9 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
       <section className="rounded-3xl border border-violet-200 bg-violet-50/70 p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-violet-700">
-              Gemini intelligence
-            </p>
+            
             <h2 className="mt-2 text-2xl font-black text-slate-950">Stored AI results, wired into analytics</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              These values come from persisted classification and theme-assignment records. Opening the
-              dashboard does not trigger new model calls.
-            </p>
+            
           </div>
           <span className="w-fit rounded-full bg-white px-3 py-1.5 text-xs font-bold text-violet-800 ring-1 ring-inset ring-violet-200">
             Real database values
@@ -169,7 +164,6 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Volume</p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Feedback over time</h2>
           </div>
           <p className="text-sm text-slate-500">
@@ -234,11 +228,8 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
       <section className="grid gap-6 xl:grid-cols-2">
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Sentiment</p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Sentiment breakdown</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Uses stored Gemini classification results only; unclassified feedback is excluded.
-            </p>
+    
           </div>
 
           {sentimentHasData ? (
@@ -287,11 +278,8 @@ export function DashboardAnalytics({ data }: DashboardAnalyticsProps) {
 
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Themes</p>
             <h2 className="mt-2 text-2xl font-black text-loop-900">Top themes</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Counts stored Gemini theme assignments on feedback matching the active filters.
-            </p>
+            
           </div>
 
           {themesHaveData ? (
