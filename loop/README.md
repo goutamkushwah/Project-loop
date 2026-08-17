@@ -85,7 +85,7 @@ VoC report
             └── evidence + numbers → Gemini narrative
                     └── validated contentJson → saved Report
 
-RBAC
+## RBAC
 
 Capability
 
@@ -183,11 +183,12 @@ A Google Gemini API key.
 
 A Vercel account for production deployment.
 
-Local setup
+## Local setup
 
 1. Clone and install
 
-git clone <YOUR_REPOSITORY_URL>
+Clone the submitted repository, then run:
+
 cd loop
 npm install
 
@@ -267,7 +268,7 @@ Open:
 
 http://localhost:3000
 
-Demo credentials
+## Demo credentials
 
 The seeded demo workspace is Acme Cloud.
 
@@ -386,7 +387,7 @@ npm run db:verify:seed
 
 A passing run confirms the demo workspace contains the complete classified and embedded dataset expected by the submission.
 
-Production deployment
+## Production deployment
 
 1. Configure Vercel environment variables
 
@@ -402,7 +403,7 @@ SEED_VIEWER_PASSWORD
 
 NEXTAUTH_URL must equal the final production origin, for example:
 
-https://your-loop-project.vercel.app
+$PRODUCTION_URL
 
 2. Apply migrations to the production database
 
@@ -422,7 +423,7 @@ npx vercel --prod
 
 5. Run the production smoke test
 
-npm run smoke -- --base-url=https://your-loop-project.vercel.app
+npm run smoke -- --base-url=$PRODUCTION_URL
 
 The smoke test verifies:
 
@@ -442,7 +443,7 @@ member-list HTTP 403 enforcement for Analyst and Viewer.
 
 A non-zero exit code means the deployment should not be submitted yet.
 
-Screenshots
+## Screenshots
 
 The project brief requires real screenshots from the submitted application. They must be captured from the final seeded production deployment rather than fabricated from mock data.
 
@@ -450,18 +451,25 @@ The exact capture manifest and safe-capture rules are documented in docs/screens
 
 For the submission repository, capture and commit:
 
-docs/screenshots/01-login.png
-docs/screenshots/02-dashboard.png
-docs/screenshots/03-inbox.png
-docs/screenshots/04-themes.png
-docs/screenshots/05-trends.png
-docs/screenshots/06-ask-loop.png
-docs/screenshots/07-voc-report.png
-docs/screenshots/08-admin-members.png
+![Login](docs/screenshots/01-login.png)
+
+![Dashboard](docs/screenshots/02-dashboard.png)
+
+![Inbox](docs/screenshots/03-inbox.png)
+
+![Themes](docs/screenshots/04-themes.png)
+
+![Trends](docs/screenshots/05-trends.png)
+
+![Ask LOOP](docs/screenshots/06-ask-loop.png)
+
+![VOC Report](docs/screenshots/07-voc-report.png)
+
+![Admin Members](docs/screenshots/08-admin-members.png)
 
 After capturing them, embed the real images in this section using repository-relative Markdown paths. Do not substitute mockups or generated screenshots for the deployed product.
 
-Security notes
+## Security notes
 
 Database operations involving tenant-owned data are scoped by authenticated workspaceId.
 
@@ -490,7 +498,7 @@ loop/
 │   ├── api/                     # Next.js Route Handlers
 │   └── shared/reports/          # Public capability-token reports
 ├── components/                  # Forms, charts, tables, product UI
-├── docs/screenshots/            # Submission screenshot manifest/images
+├── docs/                        # Final QA, demo, submission, and screenshot runbooks
 ├── lib/                         # Auth, validation, Gemini, prompts, utilities
 ├── prisma/
 │   ├── migrations/              # PostgreSQL schema history
@@ -498,7 +506,7 @@ loop/
 │   ├── seed-data.ts
 │   └── seed.ts
 ├── public/templates/            # CSV import template
-├── scripts/                     # AI backfills, seed verification, smoke test
+├── scripts/                     # AI backfills, seed verification, smoke test, final QA
 ├── services/                    # Workspace-scoped business logic
 └── types/                       # Shared TypeScript contracts
 
@@ -560,11 +568,51 @@ npm run smoke -- --base-url=...
 
 Verify deployed production application
 
+npm run qa:repo
+
+Audit final repository structure, provider migration, docs, and secret hygiene
+
+npm run final:qa
+
+Run typecheck, lint, formatting, build, seed verification, and repository QA
+
+npm run qa:submission
+
+Strict submission audit requiring screenshots and a clean Git tree
+
 Scope
 
 LOOP intentionally does not implement billing/payments, native mobile applications, real-time WebSocket features, email/SMS delivery, or live third-party feedback integrations. Simulated channel ingestion is used for integration-style demonstrations.
 
-Submission checklist
+## Final QA and demo
+
+Day 20 adds a repository-level preflight plus the final recording and submission runbooks.
+
+Run the source/repository audit at any time:
+
+npm run qa:repo
+
+Run the full environment-dependent final QA after the production-equivalent database is prepared:
+
+npm run final:qa
+
+After all eight real production screenshots are committed and the Git working tree is clean, run the strict submission audit:
+
+npm run qa:submission
+
+The strict audit intentionally fails when screenshots are missing or when uncommitted changes remain.
+
+Final runbooks:
+
+docs/final-qa-checklist.md — milestone-by-milestone product verification.
+
+docs/demo-video-script.md — approximately 4 minute 30 second product demo sequence.
+
+docs/submission-checklist.md — required repository, deployment, video, and cohort-form handoff.
+
+docs/screenshots/README.md — exact real-production screenshot capture manifest.
+
+## Submission checklist
 
 Before submitting the project:
 
@@ -574,7 +622,7 @@ npm run db:seed:final passes against the demo database.
 
 npm run typecheck, npm run lint, npm run format:check, and npm run build pass.
 
-npm run smoke -- --base-url=<production-url> passes.
+npm run smoke -- --base-url=$PRODUCTION_URL passes.
 
 All three demo credentials work on production.
 
@@ -584,8 +632,14 @@ No .env, API keys, connection strings, or node_modules are committed.
 
 The repository URL and Vercel URL are accessible to the grader.
 
-The Day 20 3–5 minute demo video shows every required feature working.
+The three-to-five-minute demo video follows the final runbook and shows every required feature working.
+
+The separate one-to-two-minute self-feedback video is uploaded and accessible.
+
+The official cohort submission form contains the final repository, production, and video links.
+
+npm run qa:submission passes after screenshots are committed and the Git working tree is clean.
 
 License / internship note
 
-LOOP is an internship project implementation. Keep the repository and demo credentials aligned with your cohort's submission and mentor-access requirements.
+LOOP is an internship project implementation. Keep the repository and demo credentials aligned with your cohort's submission and mentor-access requirements

@@ -1,12 +1,12 @@
 {
   "name": "loop",
-  "version": "1.0.0",
+  "version": "0.20.0",
   "private": true,
   "description": "LOOP — AI Customer-Feedback Intelligence Platform",
   "engines": {
     "node": ">=18.18.0"
   },
-   "scripts": {
+  "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -31,13 +31,16 @@
     "db:seed:ready": "npm run db:seed:classified && npm run ai:backfill-embeddings",
     "db:verify:seed": "tsx scripts/verify-final-seed.ts",
     "db:seed:final": "npm run db:seed:ready && npm run db:verify:seed",
-    "smoke": "tsx scripts/smoke-test.ts"
+    "smoke": "tsx scripts/smoke-test.ts",
+    "qa:repo": "tsx scripts/final-qa.ts",
+    "qa:submission": "tsx scripts/final-qa.ts --submission",
+    "final:qa": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run db:verify:seed && npm run qa:repo"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@google/genai": "^2.16.0",
+    "@google/genai": "2.14.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "csv-parse": "^7.0.1",
