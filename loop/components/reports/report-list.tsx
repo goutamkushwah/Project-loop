@@ -44,7 +44,7 @@ export function ReportList({ page }: ReportListProps) {
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Saved reports</p>
+          
           <h2 className="mt-2 text-2xl font-black text-loop-900">Voice-of-Customer history</h2>
           <p className="mt-2 text-sm text-slate-600">
             {page.pagination.totalItems.toLocaleString()} saved report{page.pagination.totalItems === 1 ? "" : "s"} in this workspace.

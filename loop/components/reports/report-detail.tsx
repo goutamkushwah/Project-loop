@@ -68,9 +68,7 @@ export function ReportDetail({
       ) : null}
 
       <section className="rounded-3xl border border-loop-200 bg-gradient-to-br from-loop-900 to-violet-900 p-6 text-white shadow-sm sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-loop-200">
-          Voice of Customer
-        </p>
+        
 
         <h2 className="mt-3 max-w-4xl text-3xl font-black tracking-tight sm:text-4xl">
           {content.narrative.headline}
@@ -89,9 +87,7 @@ export function ReportDetail({
             {content.period.dayCount} days
           </span>
 
-          <span className="rounded-full bg-white/10 px-3 py-1.5">
-            {content.provider} · {content.model}
-          </span>
+          
         </div>
       </section>
 
@@ -162,9 +158,7 @@ export function ReportDetail({
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">
-            Sentiment shift
-          </p>
+          
 
           <h3 className="mt-2 text-2xl font-black text-loop-900">
             Current vs previous period
@@ -229,9 +223,7 @@ export function ReportDetail({
         </article>
 
         <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">
-            Themes
-          </p>
+          
 
           <h3 className="mt-2 text-2xl font-black text-loop-900">
             What customers are talking about
@@ -295,9 +287,7 @@ export function ReportDetail({
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">
-          Customer voice
-        </p>
+        
 
         <h3 className="mt-2 text-2xl font-black text-loop-900">
           Notable verbatim feedback
@@ -334,9 +324,7 @@ export function ReportDetail({
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">
-          Recommended actions
-        </p>
+        
 
         <h3 className="mt-2 text-2xl font-black text-loop-900">
           What to do next
