@@ -935,6 +935,8 @@ The full screenshots are shown in [Product Preview](#product-preview).
 | Trends                   | [`docs/screenshots/05-trends.png`](loop/docs/screenshots/05-trends.png)               |
 | Ask LOOP                 | [`docs/screenshots/06-ask-loop.png`](loop/docs/screenshots/06-ask-loop.png)           |
 | Voice-of-Customer Report | [`docs/screenshots/07-voc-report.png`](loop/docs/screenshots/07-voc-report.png)       |
+| Voice-of-Customer Report 1 | [`docs/screenshots/report-1.png`](loop/docs/screenshots/report-1.png)             |
+| Voice-of-Customer Report 2 | [`docs/screenshots/report-2.png`](loop/docs/screenshots/report-2.png)             |
 | Admin Members            | [`docs/screenshots/08-admin-members.png`](loop/docs/screenshots/08-admin-members.png) |
 
 ---
