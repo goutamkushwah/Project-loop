@@ -37,29 +37,29 @@ Instead of treating AI as a standalone chatbot, LOOP connects it directly to rea
 
 ### Authentication
 
-![Login](docs/screenshots/01-login.png)
+![Login](loop/docs/screenshots/01-login.png)
 
 ### Dashboard
 
-![Dashboard](docs/screenshots/02-dashboard.png)
+![Dashboard](loop/docs/screenshots/02-dashboard.png)
 
 ### Feedback Intelligence
 
-![Inbox](docs/screenshots/03-inbox.png)
+![Inbox](loop/docs/screenshots/03-inbox.png)
 
-![Themes](docs/screenshots/04-themes.png)
+![Themes](loop/docs/screenshots/04-themes.png)
 
-![Trends](docs/screenshots/05-trends.png)
+![Trends](loop/docs/screenshots/05-trends.png)
 
 ### AI Intelligence
 
-![Ask LOOP](docs/screenshots/06-ask-loop.png)
+![Ask LOOP](loop/docs/screenshots/06-ask-loop.png)
 
-![VOC Report](docs/screenshots/07-voc-report.png)
+![VOC Report](loop/docs/screenshots/07-voc-report.png)
 
 ### Workspace Administration
 
-![Admin Members](docs/screenshots/08-admin-members.png)
+![Admin Members](loop/docs/screenshots/08-admin-members.png)
 
 ---
 
