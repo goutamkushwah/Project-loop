@@ -58,11 +58,8 @@ export function ReportGeneratorForm({ defaultRange }: ReportGeneratorFormProps) 
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-loop-600">Generate</p>
           <h2 className="mt-2 text-2xl font-black text-loop-900">New Voice-of-Customer report</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            LOOP pre-computes the period statistics first, then Gemini writes a narrative around those exact numbers and selected feedback evidence.
-          </p>
+          
         </div>
         <span className="w-fit rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
           Gemini · server-side
