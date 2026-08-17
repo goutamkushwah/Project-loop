@@ -13,6 +13,8 @@ Use the seeded `Acme Cloud` workspace and capture these views at desktop width a
 6. `06-ask-loop.png` — a grounded Ask LOOP answer with its cited feedback evidence visible.
 7. `07-voc-report.png` — a saved Voice-of-Customer report showing summary, themes, verbatim evidence, and actions.
 8. `08-admin-members.png` — Admin member-management page demonstrating the three-role workspace.
+9. `report-1.png` — first report screenshot showing the Voice-of-Customer report with its summary, themes, verbatim evidence, and recommended actions.
+10. `report-2.png` — second report screenshot showing the remaining report details, insights, evidence, or actions.
 
 Before committing screenshots:
 
