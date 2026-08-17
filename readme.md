@@ -968,14 +968,14 @@ These are possible extensions, not current functionality:
 
 # Team
 
-LOOP was built by:
+LOOP was built by the following team as part of the **Zidio Development — Web Development Track** internship.
 
-* **Goutam Kushwah**
-* **Gaurav Athode**
-* **Sneha Sekar**
-* **Mohan Sahu**
-
-**Zidio Development — Web Development Track**
+| Team Member        | Email                                                               | GitHub                                             |
+| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------- |
+| **Goutam Kushwah** | [goutam.kushwah2003@gmail.com](mailto:goutam.kushwah2003@gmail.com) | [@goutamkushwah](https://github.com/goutamkushwah) |
+| **Gaurav Athode**  | [gauravathode123@gmail.com](mailto:gauravathode123@gmail.com)       | [@GauravAthode](https://github.com/GauravAthode) |
+| **Sneha Sekar**    | [snehasekar0123@gmail.com](mailto:snehasekar0123@gmail.com)         | [@sneha2301-s](https://github.com/sneha2301-s) |
+| **Mohan Sahu**     | [mohanmppsc@gmail.com](mailto:mohanmppsc@gmail.com)                 | [@mmsahu](https://github.com/mmsahu) |
 
 ---
 
