@@ -1,5 +1,3 @@
-//import "server-only";
-
 import { ApiError } from "@google/genai";
 
 import {
@@ -19,11 +17,23 @@ export class EmbeddingProviderError extends Error {
   }
 }
 
-function normalizeEmbeddingProviderError(error: unknown): EmbeddingProviderError {
+function normalizeEmbeddingProviderError(
+  error: unknown,
+): EmbeddingProviderError {
+  // Log the original Gemini error so we can identify the real problem.
+  console.error("RAW GEMINI EMBEDDING ERROR:", error);
+
   if (error instanceof ApiError) {
     const status = typeof error.status === "number" ? error.status : null;
+
     const retryable =
       status === 408 || status === 429 || (status !== null && status >= 500);
+
+    console.error("GEMINI API ERROR:", {
+      status,
+      message: error.message,
+      name: error.name,
+    });
 
     return new EmbeddingProviderError(
       retryable
@@ -32,6 +42,16 @@ function normalizeEmbeddingProviderError(error: unknown): EmbeddingProviderError
       status,
       retryable,
     );
+  }
+
+  if (error instanceof Error) {
+    console.error("GEMINI ERROR DETAILS:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+  } else {
+    console.error("UNKNOWN GEMINI ERROR:", error);
   }
 
   return new EmbeddingProviderError(
@@ -108,7 +128,9 @@ export async function embedFeedbackDocuments(
   }
 }
 
-export async function embedAskLoopQuestion(question: string): Promise<number[]> {
+export async function embedAskLoopQuestion(
+  question: string,
+): Promise<number[]> {
   try {
     const response = await gemini.models.embedContent({
       model: GEMINI_EMBEDDING_MODEL,

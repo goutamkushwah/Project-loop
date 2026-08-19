@@ -48,9 +48,9 @@ export default async function AskLoopPage() {
           </p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Embedding index</p>
-          <p className="mt-2 truncate text-lg font-black text-loop-900">{coverage.model}</p>
-          <p className="mt-1 text-sm text-slate-600">{coverage.dimensions}-dimension vectors</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"></p>
+          <p className="mt-2 truncate text-lg font-black text-loop-900">Embedding index</p>
+          <p className="mt-1 text-sm text-slate-600">{coverage.dimensions}dimension vectors</p>
         </article>
       </section>
 
