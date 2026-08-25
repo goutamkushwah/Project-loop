@@ -26,8 +26,8 @@ Instead of treating AI as a standalone chatbot, LOOP connects it directly to rea
 | ---------------- | --------------------------------------- |
 | 🌐 Live Demo     | [Open LOOP](https://zidio-loop.vercel.app/) |
 | 💻 Repository    | [GitHub Repository](https://github.com/goutamkushwah/Project-loop) |
-| 🎥 Demo Video    | `[Demo Video URL]`                      |
-| 📚 Documentation | [`docs/`](loop/docs/)                        |
+| 🎥 Demo Video    | [Demo Video URL](https://www.youtube.com/watch?v=mZ824sQNh6A)      |
+| 📚 Documentation | [Docs](loop/docs/)                        |
 | 🖼️ Screenshots  | [Product Preview](#product-preview)     |
 | ⚙️ Installation  | [Local Development](#local-development) |
 
